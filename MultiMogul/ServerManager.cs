@@ -259,7 +259,14 @@ public class ServerManager : MonoBehaviour {
 
     // client sent back approved state, send them the rest of the data
     private void OnConnectionApproved(Connection connection, Packet receivedPacket) {
-        Debug.Log($"client with id [{connection.Id}] sent back approved state, send base data...");
+        Debug.Log($"client with id [{connection.Id}] sent back approved state");
+
+        using (Packet packet = new Packet(PacketType.OnRPCMessage))
+        {
+            packet.Write(SaveManager.GetSaveFile());
+            packet.Send(connection, SendType.Reliable);
+            Debug.Log("sending save file to client");
+        }
     }
 }
 

@@ -108,6 +108,12 @@ public class ClientManager : MonoBehaviour {
     //    // TODO: switch to server view
     //}
 
+    public void OnRPCMessage(Packet receivedPacket)
+    {
+        Debug.Log("received rpc from server");
+        SaveManager.LoadGameplaySceneThenLoadSave(receivedPacket.ReadString());
+    }
+
     public void OnServerMessage(IntPtr data, int size, long messageNum, long recvTime, int channel) {
         using (Packet packet = new Packet(data, size)) {
             PacketType packetType = packet.GetPacketType();
@@ -119,6 +125,7 @@ public class ClientManager : MonoBehaviour {
                     //this.OnAuthTicketResponse(packet);
                     break;
                 case PacketType.OnRPCMessage: // handle rpcs here and forward them to the correct function
+                    OnRPCMessage(packet);
                     break;
                 default:
                     break;
