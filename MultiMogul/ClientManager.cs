@@ -68,6 +68,13 @@ public class ClientManager : MonoBehaviour {
 
         Debug.Log($"client disconnected.");
 
+        if (UIManager.Instance != null && UIManager.Instance.PauseMenu != null)
+        {
+            UIManager.Instance.PauseMenu.OnReturnToMainMenuPressed();
+
+            Debug.Log("returned to main menu.");
+        }
+
         if (AutoSaveManager.Instance != null)
         {
             AutoSaveManager.Instance.AutoSaveEnabled = true;

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEngine;
 
 namespace MultiMogul.MultiMogul.Hooks {
     [HarmonyPatch]
@@ -14,6 +15,14 @@ namespace MultiMogul.MultiMogul.Hooks {
         {
             MultiMogulBase.serverManager.StopServer();
             MultiMogulBase.clientManager.Disconnect();
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(MainMenu), "OnEnable")]
+        public static void PostMainMenu(MainMenu __instance)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
     }
 }

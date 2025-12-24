@@ -37,6 +37,11 @@ public class MultiMogulBase : BaseUnityPlugin
         Logger.LogInfo($"{MyPluginInfo.PLUGIN_NAME}[v{MyPluginInfo.PLUGIN_VERSION}] finished initializing");
     }
 
+    private void Update()
+    {
+
+    }
+
     private void OnApplicationQuit()
     {
         serverManager.StopServer();
