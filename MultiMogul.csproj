@@ -50,6 +50,9 @@
     <Reference Include="DOTweenPro">
       <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\MineMogul Demo\MineMogul_Data\Managed\DOTweenPro.dll</HintPath>
     </Reference>
+    <Reference Include="Facepunch.Steamworks.Win64">
+      <HintPath>ext\Facepunch.Steamworks.Win64.dll</HintPath>
+    </Reference>
     <Reference Include="Mono.Security">
       <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\MineMogul Demo\MineMogul_Data\Managed\Mono.Security.dll</HintPath>
     </Reference>
