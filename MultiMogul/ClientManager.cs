@@ -31,6 +31,7 @@ public class ClientManager : MonoBehaviour {
     private void OnDisable() {
         this.Disconnect();
 
+        SteamFriends.OnGameLobbyJoinRequested -= OnGameLobbyJoinRequested;
         Instance = null;
     }
 
@@ -56,8 +57,6 @@ public class ClientManager : MonoBehaviour {
     }
 
     public void Disconnect() {
-        SteamFriends.OnGameLobbyJoinRequested -= OnGameLobbyJoinRequested;
-
         if (this.currentTicket != null) {
             this.currentTicket.Cancel();
             this.currentTicket = null;
@@ -65,6 +64,10 @@ public class ClientManager : MonoBehaviour {
 
         this.connection?.Close();
         this.connection = null;
+
+        Debug.Log($"client disconnected.");
+
+        AutoSaveManager.Instance.AutoSaveEnabled = true;
     }
 
     private void OnGameLobbyJoinRequested(Lobby lobby, SteamId friendId) {
@@ -112,6 +115,7 @@ public class ClientManager : MonoBehaviour {
     {
         Debug.Log("received rpc from server");
         SaveManager.LoadGameplaySceneThenLoadSave(receivedPacket.ReadString());
+        AutoSaveManager.Instance.AutoSaveEnabled = false;
     }
 
     public void OnServerMessage(IntPtr data, int size, long messageNum, long recvTime, int channel) {

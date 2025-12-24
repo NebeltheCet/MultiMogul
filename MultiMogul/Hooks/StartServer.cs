@@ -12,7 +12,7 @@ namespace MultiMogul.MultiMogul.Hooks {
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(SavingLoadingManager), nameof(SavingLoadingManager.LoadGame))]
-        public static void Prefix_LoadGame() {
+        public static void PostLoadGame(SavingLoadingManager __instance) {
             if (!allowOverride)
                 return;
 

@@ -106,6 +106,8 @@ public class ServerManager : MonoBehaviour {
         if (this.currentLobby.Id != 0) {
             this.currentLobby.Leave();
         }
+
+        Debug.Log($"server socket stopped.");
     }
 
     private async void CreateLobbyAsync(int maxPlayers = 8, ServerLobbyType lobbyType = ServerLobbyType.Private) {
@@ -235,7 +237,8 @@ public class ServerManager : MonoBehaviour {
 
         //SteamUser.EndAuthSession(connectedClient.steamId);
 
-        Debug.Log($"client with id [{connection.Id}] disonnected");
+        Debug.Log($"client with id [{connection.Id}] disconnected");
+        connection.Close(false);
         this.connectedClients.Remove(connection);
     }
 
