@@ -10,25 +10,29 @@ using MultiMogul.MultiMogul;
 using MultiMogul.MultiMogul.Utilities;
 using System.Reflection;
 using System.Linq;
+using MultiMogul.MultiMogul.Entities;
 
-public class ConnectedClient {
+public class ConnectedClient
+{
     public SteamId steamId = 0;
-    public bool hasValidTicket = true;
+    public bool hasValidTicket = true; // originally "false" when auth tickets were implemented
 }
 
 // gameplay loop runs here, the server simulates all player commands and sends updated data to all clients
 // that should allow server authoritative actions
-public class ServerManager : MonoBehaviour {
+public class ServerManager : MonoBehaviour
+{
     public static ServerManager Instance;
 
     public Dictionary<Connection, ConnectedClient> connectedClients = new Dictionary<Connection, ConnectedClient>();
     private SocketManager serverSocket;
-    private Lobby currentLobby;
+    public Lobby currentLobby;
 
     [Header("Server Defaults")]
     public int maxPlayers = 8;
 
-    public enum ServerLobbyType : int { // straight copy from Facepunch.Steamworks
+    public enum ServerLobbyType : int
+    { // straight copy from Facepunch.Steamworks
         Private = 0,
         FriendsOnly = 1,
         Public = 2,
@@ -36,8 +40,10 @@ public class ServerManager : MonoBehaviour {
         PrivateUnique = 4,
     }
 
-    private void Awake() {
-        if (Instance != null) {
+    private void Awake()
+    {
+        if (Instance != null)
+        {
             Debug.LogWarning($"multiple instances of {nameof(ServerManager)} detected. possibly undefined behaviour?");
             return;
         }
@@ -49,15 +55,19 @@ public class ServerManager : MonoBehaviour {
         Debug.Log($"server manager initialized");
     }
 
-    private void OnDisable() {
+    private void OnDisable()
+    {
         this.StopServer();
 
         Instance = null;
     }
 
-    private void FixedUpdate() {
-        if (this.serverSocket != null && this.serverSocket.Connected.Count > 0) {
-            foreach (var currentConnection in this.serverSocket.Connected) { // disconnect all players
+    private void FixedUpdate()
+    {
+        if (this.serverSocket != null && this.serverSocket.Connected.Count > 0)
+        {
+            foreach (var currentConnection in this.serverSocket.Connected)
+            { // disconnect all players
                 if (this.connectedClients.ContainsKey(currentConnection))
                     continue; // only close connections that aren't "tracked"
 
@@ -65,7 +75,8 @@ public class ServerManager : MonoBehaviour {
             }
 
             int authenticatedClients = 0;
-            foreach (var kvp in this.connectedClients) {
+            foreach (var kvp in this.connectedClients)
+            {
                 if (!kvp.Value.hasValidTicket)
                     continue;
 
@@ -76,16 +87,26 @@ public class ServerManager : MonoBehaviour {
         }
 
         this.serverSocket?.Receive();
+
+        foreach (var player in Player.activePlayerList)
+        {
+            player.OnUpdate();
+        }
+
+        Player.OnServerUpdate();
     }
 
-    public void StartServer() {
-        if (this.serverSocket != null) {
+    public void StartServer()
+    {
+        if (this.serverSocket != null)
+        {
             Debug.LogWarning("server is already running");
             return;
         }
 
         this.serverSocket = SteamNetworkingSockets.CreateRelaySocket<ServerSocket>(0);
-        if (this.serverSocket == null) {
+        if (this.serverSocket == null)
+        {
             Debug.LogError("failed to create server socket");
             return;
         }
@@ -93,12 +114,28 @@ public class ServerManager : MonoBehaviour {
         Debug.Log($"server socket created: {SteamClient.SteamId}");
 
         CreateLobbyAsync(this.maxPlayers, ServerLobbyType.Public);
+
+        GameObject playerObject = UnityEngine.GameObject.Find("Player");
+        if (playerObject != null)
+        {
+            Player localPlayer = new Player();
+            localPlayer.position = playerObject.transform.position;
+            localPlayer.rotation = playerObject.transform.rotation;
+            localPlayer.scale = playerObject.transform.localScale;
+            localPlayer.steamId = SteamClient.SteamId;
+            localPlayer.isLocalPlayer = true;
+
+            Player.activePlayerList.Add(localPlayer);
+        }
     }
 
-    public void StopServer() {
+    public void StopServer()
+    {
         //SteamUser.OnValidateAuthTicketResponse -= this.OnValidateAuthTicketResponse;
-        if (this.serverSocket != null && this.serverSocket.Connected.Count > 0) {
-            foreach (var currentConnection in this.serverSocket.Connected) { // disconnect all players
+        if (this.serverSocket != null && this.serverSocket.Connected.Count > 0)
+        {
+            foreach (var currentConnection in this.serverSocket.Connected)
+            { // disconnect all players
                 currentConnection.Close(true);
             }
         }
@@ -106,16 +143,20 @@ public class ServerManager : MonoBehaviour {
         this.serverSocket?.Close();
         this.serverSocket = null;
 
-        if (this.currentLobby.Id != 0) {
+        if (this.currentLobby.Id != 0)
+        {
             this.currentLobby.Leave();
         }
+        this.currentLobby = new Lobby(0);
 
         Debug.Log($"server socket stopped.");
     }
 
-    private async void CreateLobbyAsync(int maxPlayers = 8, ServerLobbyType lobbyType = ServerLobbyType.Private) {
+    private async void CreateLobbyAsync(int maxPlayers = 8, ServerLobbyType lobbyType = ServerLobbyType.Private)
+    {
         var lobbyResult = await SteamMatchmaking.CreateLobbyAsync(maxPlayers);
-        if (!lobbyResult.HasValue) {
+        if (!lobbyResult.HasValue)
+        {
             Debug.LogError("failed to create steam lobby");
             return;
         }
@@ -124,7 +165,8 @@ public class ServerManager : MonoBehaviour {
         this.currentLobby.SetJoinable(true); // allow people to join
 
         // change the publicity type
-        switch (lobbyType) {
+        switch (lobbyType)
+        {
             case ServerLobbyType.Private:
                 this.currentLobby.SetPrivate();
                 break;
@@ -207,8 +249,10 @@ public class ServerManager : MonoBehaviour {
     //    Debug.Log($"client with id [{connection.Id}] requested auth ticket for steam id \"{steamId}\", processing...");
     //}
 
-    public void OnClientConnected(Connection connection, ConnectionState connectionState) {
-        if (this.connectedClients.ContainsKey(connection)) {
+    public void OnClientConnected(Connection connection, ConnectionState connectionState)
+    {
+        if (this.connectedClients.ContainsKey(connection))
+        {
             Debug.LogWarning($"client with id [{connection.Id}] is already tracked as connected. ignoring connect");
             return;
         }
@@ -217,7 +261,8 @@ public class ServerManager : MonoBehaviour {
         connection.Accept();
 
         Debug.Log($"client with id [{connection.Id}] connected");
-        using (Packet packet = new Packet(PacketType.OnConnectionApproved)) {
+        using (Packet packet = new Packet(PacketType.OnConnectionApproved))
+        {
             packet.Send(connection, SendType.Reliable);
         }
 
@@ -225,8 +270,10 @@ public class ServerManager : MonoBehaviour {
         ServerManager.Instance.connectedClients.Add(connection, new ConnectedClient());
     }
 
-    public void OnClientDisconnected(Connection connection, ConnectionState connectionState) {
-        if (!this.connectedClients.ContainsKey(connection)) {
+    public void OnClientDisconnected(Connection connection, ConnectionState connectionState)
+    {
+        if (!this.connectedClients.ContainsKey(connection))
+        {
             Debug.LogWarning($"client with id [{connection.Id}] is not tracked as connected. ignoring disconnect");
             return;
         }
@@ -239,6 +286,14 @@ public class ServerManager : MonoBehaviour {
             return; // the client never authenticated properly
 
         //SteamUser.EndAuthSession(connectedClient.steamId);
+
+        Player existingPlayer = Player.activePlayerList
+                     .Find(p => p.steamId == connectedClient.steamId);
+        if (existingPlayer != null)
+        {
+            existingPlayer.OnRemoved();
+            Player.activePlayerList.Remove(existingPlayer);
+        }
 
         Debug.Log($"client with id [{connection.Id}] disconnected");
         connection.Close(false);
@@ -254,7 +309,8 @@ public class ServerManager : MonoBehaviour {
         }
 
         int packetHash = packet.ReadString().GetHashCode();
-        ThreadDispatcher.Enqueue(() => {
+        ThreadDispatcher.Enqueue(() =>
+        {
             Type[] allTypes = Assembly.GetExecutingAssembly().GetTypes();
             foreach (Type type in allTypes)
             {
@@ -291,29 +347,44 @@ public class ServerManager : MonoBehaviour {
         });
     }
 
-    public void OnClientMessage(Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel) {
-        using (Packet receivedPacket = new Packet(data, size)) {
-            PacketType packetType = receivedPacket.GetPacketType();
-            switch (packetType) {
-                case PacketType.OnConnectionApproved:
-                    this.OnConnectionApproved(connection, receivedPacket);
-                    break;
-                case PacketType.OnAuthTicket:
-                    //this.HandleAuthTicket(connection, receivedPacket);
-                    break;
-                case PacketType.OnRPCMessage:
-                    this.TransportPacket(connection, receivedPacket);
-                    break;
-                default:
-                    break;
-            }
+    public void OnClientMessage(Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel)
+    {
+        if (!this.connectedClients.ContainsKey(connection))
+        {
+            Debug.LogWarning($"client with id [{connection.Id}] is not tracked as connected. ignoring message");
+            return;
+        }
+
+        Packet receivedPacket = new Packet(data, size);
+
+        PacketType packetType = receivedPacket.GetPacketType();
+        switch (packetType)
+        {
+            case PacketType.OnConnectionApproved:
+                this.OnConnectionApproved(connection, receivedPacket);
+                receivedPacket.Dispose();
+                break;
+            case PacketType.OnAuthTicket:
+                //this.HandleAuthTicket(connection, receivedPacket);
+                receivedPacket.Dispose();
+                break;
+            case PacketType.OnRPCMessage:
+                this.TransportPacket(connection, receivedPacket);
+                break;
+            default:
+                break;
         }
     }
 
     // client sent back approved state, send them the rest of the data
-    private void OnConnectionApproved(Connection connection, Packet receivedPacket) {
+    private void OnConnectionApproved(Connection connection, Packet receivedPacket)
+    {
         Debug.Log($"client with id [{connection.Id}] sent back approved state");
 
+        ulong steamId = receivedPacket.ReadUInt64();
+        ConnectedClient connectedClient = this.connectedClients[connection];
+
+        connectedClient.steamId = steamId;
         using (Packet packet = new Packet(PacketType.OnRPCMessage))
         {
             packet.Write("CL_OnWorldReceive");
@@ -321,12 +392,25 @@ public class ServerManager : MonoBehaviour {
             packet.Send(connection, SendType.Reliable);
             Debug.Log("sending save file to client");
         }
+
+        Player player = new Player();
+        player.position = new Vector3(0f, 0f, 0f);
+        player.rotation = new Quaternion(0f, 0f, 0f, 0f);
+        player.scale = new Vector3(1f, 1f, 1f);
+        player.steamId = steamId;
+
+        Player.activePlayerList.Add(player);
+
+        Player.NetworkPlayerList();
     }
 }
 
-public class ServerSocket : SocketManager {
-    public override void OnConnectionChanged(Connection connection, ConnectionInfo info) {
-        switch (info.State) {
+public class ServerSocket : SocketManager
+{
+    public override void OnConnectionChanged(Connection connection, ConnectionInfo info)
+    {
+        switch (info.State)
+        {
             case ConnectionState.Connected:
                 ServerManager.Instance.OnClientConnected(connection, info.State);
                 break;
@@ -343,7 +427,8 @@ public class ServerSocket : SocketManager {
         base.OnConnectionChanged(connection, info);
     }
 
-    public override void OnMessage(Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel) {
+    public override void OnMessage(Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel)
+    {
         ServerManager.Instance.OnClientMessage(connection, identity, data, size, messageNum, recvTime, channel);
     }
 }

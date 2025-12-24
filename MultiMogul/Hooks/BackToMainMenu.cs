@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using MultiMogul.MultiMogul.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +16,13 @@ namespace MultiMogul.MultiMogul.Hooks {
         {
             MultiMogulBase.serverManager.StopServer();
             MultiMogulBase.clientManager.Disconnect();
+
+            foreach (var player in Player.activePlayerList)
+            {
+                player.OnRemoved();
+            }
+
+            Player.activePlayerList.Clear();
         }
 
         [HarmonyPostfix]

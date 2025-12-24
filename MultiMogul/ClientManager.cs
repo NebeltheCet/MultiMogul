@@ -1,4 +1,5 @@
 using MultiMogul.MultiMogul;
+using MultiMogul.MultiMogul.Entities;
 using MultiMogul.MultiMogul.Utilities;
 using Steamworks;
 using Steamworks.Data;
@@ -14,7 +15,7 @@ using UnityEngine;
 public class ClientManager : MonoBehaviour {
     public static ClientManager Instance;
 
-    private ConnectionManager connection;
+    public ConnectionManager connection;
     private AuthTicket currentTicket = null;
     private SteamId connectedServerId;
 
@@ -40,6 +41,11 @@ public class ClientManager : MonoBehaviour {
 
     private void FixedUpdate() {
         this.connection?.Receive();
+
+        foreach (var player in Player.activePlayerList)
+        {
+            player.OnUpdate();
+        }
     }
 
     public void ConnectToServer() {
@@ -101,6 +107,7 @@ public class ClientManager : MonoBehaviour {
 
         Debug.Log("connection approved by server, waiting for data...");
         using (Packet packet = new Packet(PacketType.OnConnectionApproved)) {
+            packet.Write(SteamClient.SteamId.Value);
             packet.Send(this.connection.Connection, SendType.Reliable);
         }
     }

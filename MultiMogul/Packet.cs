@@ -70,6 +70,13 @@ namespace MultiMogul.MultiMogul
             this.writer.Write(value.y);
             this.writer.Write(value.z);
         }
+        public void Write(Quaternion value)
+        {
+            this.writer.Write(value.x);
+            this.writer.Write(value.y);
+            this.writer.Write(value.z);
+            this.writer.Write(value.w);
+        }
         public void WriteBytes(byte[] value)
         {
             if (value == null)
@@ -98,6 +105,15 @@ namespace MultiMogul.MultiMogul
             float z = this.reader.ReadSingle();
 
             return new Vector3(x, y, z);
+        }
+        public Quaternion ReadQuaternion()
+        {
+            float x = this.reader.ReadSingle();
+            float y = this.reader.ReadSingle();
+            float z = this.reader.ReadSingle();
+            float w = this.reader.ReadSingle();
+
+            return new Quaternion(x, y, z, w);
         }
         public byte[] ReadBytes()
         {
