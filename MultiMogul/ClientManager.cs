@@ -60,17 +60,18 @@ public class ClientManager : MonoBehaviour {
     }
 
     public void Disconnect() {
-        if (this.currentTicket != null) {
-            this.currentTicket.Cancel();
-            this.currentTicket = null;
-        }
+        this.currentTicket?.Cancel();
+        this.currentTicket = null;
 
         this.connection?.Close();
         this.connection = null;
 
         Debug.Log($"client disconnected.");
 
-        AutoSaveManager.Instance.AutoSaveEnabled = true;
+        if (AutoSaveManager.Instance != null)
+        {
+            AutoSaveManager.Instance.AutoSaveEnabled = true;
+        }
     }
 
     private void OnGameLobbyJoinRequested(Lobby lobby, SteamId friendId) {
