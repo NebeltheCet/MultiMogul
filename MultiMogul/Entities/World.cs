@@ -12,8 +12,12 @@ namespace MultiMogul.MultiMogul.Entities
             Debug.Log("received world data from server");
 
             SaveManager.LoadGameplaySceneThenLoadSave(receivedPacket.ReadString());
-            AutoSaveManager.Instance.AutoSaveEnabled = false;
+            if (AutoSaveManager.Instance != null)
+            {
+                AutoSaveManager.Instance.AutoSaveEnabled = false;
+            }
 
+            Debug.Log("world data loaded from server");
             receivedPacket.Dispose();
         }
     }

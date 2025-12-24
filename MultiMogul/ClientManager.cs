@@ -186,7 +186,8 @@ public class ClientManager : MonoBehaviour {
 
     private class ClientConnection : ConnectionManager {
         public override void OnDisconnected(ConnectionInfo info) {
-            Debug.Log($"disconnected from server");
+            Debug.Log($"disconnected by server");
+            ClientManager.Instance.Disconnect();
 
             //SteamUser.EndAuthSession(ClientManager.Instance.connectedServerId);
             if (ClientManager.Instance.currentTicket != null) {
