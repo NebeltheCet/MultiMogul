@@ -102,10 +102,9 @@ namespace MultiMogul.MultiMogul.Entities
                         packet.Write(this.rotation);
                         packet.Write(this.scale);
 
-                        if (ServerManager.Instance.currentLobby.Id == 0)
+                        if (ServerManager.Instance?.currentLobby.Id == 0 && ClientManager.Instance != null && ClientManager.Instance.connection != null)
                         {
                             packet.Send(ClientManager.Instance.connection.Connection, SendType.Unreliable);
-                            Debug.Log($"sent local player tick");
                         }
                     }
 
@@ -135,7 +134,6 @@ namespace MultiMogul.MultiMogul.Entities
                                 continue;
 
                             packet.Send(kvp.Key, SendType.Unreliable);
-                            Debug.Log($"sent player ticks");
                         }
                     }
                 }
@@ -252,7 +250,7 @@ namespace MultiMogul.MultiMogul.Entities
             existingPlayer.rotation = receivedPacket.ReadQuaternion();
             existingPlayer.scale = receivedPacket.ReadVector3();
 
-            Debug.LogWarning($"received player tick for player {steamId}");
+            //Debug.LogWarning($"received player tick for player {steamId}");
 
             receivedPacket.Dispose();
         }
@@ -274,7 +272,7 @@ namespace MultiMogul.MultiMogul.Entities
             existingPlayer.rotation = receivedPacket.ReadQuaternion();
             existingPlayer.scale = receivedPacket.ReadVector3();
 
-            Debug.LogWarning($"received server player tick for player {connectedClient.steamId}");
+            //Debug.LogWarning($"received server player tick for player {connectedClient.steamId}");
 
             receivedPacket.Dispose();
         }

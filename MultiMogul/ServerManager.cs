@@ -26,7 +26,7 @@ public class ServerManager : MonoBehaviour
 
     public Dictionary<Connection, ConnectedClient> connectedClients = new Dictionary<Connection, ConnectedClient>();
     private SocketManager serverSocket;
-    public Lobby currentLobby;
+    public Lobby currentLobby = new Lobby(0);
 
     [Header("Server Defaults")]
     public int maxPlayers = 8;
