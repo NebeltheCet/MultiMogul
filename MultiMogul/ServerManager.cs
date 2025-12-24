@@ -7,6 +7,9 @@ using System.Net.Sockets;
 using Steamworks.ServerList;
 using System.Collections.Generic;
 using MultiMogul.MultiMogul;
+using MultiMogul.MultiMogul.Utilities;
+using System.Reflection;
+using System.Linq;
 
 public class ConnectedClient {
     public SteamId steamId = 0;
@@ -242,6 +245,52 @@ public class ServerManager : MonoBehaviour {
         this.connectedClients.Remove(connection);
     }
 
+    public void TransportPacket(Connection connection, Packet packet)
+    {
+        if (packet == null)
+        {
+            Debug.LogWarning("failed to handle packet: invalid packet!");
+            return;
+        }
+
+        int packetHash = packet.ReadString().GetHashCode();
+        ThreadDispatcher.Enqueue(() => {
+            Type[] allTypes = Assembly.GetExecutingAssembly().GetTypes();
+            foreach (Type type in allTypes)
+            {
+                MethodInfo[] methods = type.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                foreach (MethodInfo method in methods)
+                {
+                    if (method.GetCustomAttributes(typeof(Networkable), false).FirstOrDefault() is not Networkable attribute)
+                        continue;
+
+                    if (packet.GetPacketType() != PacketType.OnRPCMessage)
+                        continue;
+
+                    if (attribute.packetHash != packetHash)
+                        continue;
+
+                    if (method.IsStatic)
+                    {
+                        method.Invoke(null, [connection, packet]);
+                        return;
+                    }
+
+                    if (typeof(MonoBehaviour).IsAssignableFrom(type))
+                    {
+                        method.Invoke(UnityEngine.Object.FindFirstObjectByType(type), [connection, packet]);
+                        return;
+                    }
+
+                    method.Invoke(Activator.CreateInstance(type), [connection, packet]);
+                    return;
+                }
+            }
+
+            Debug.LogWarning($"failed to find handler for: {Enum.GetName(typeof(PacketType), packet.GetPacketType())}[{packetHash}]");
+        });
+    }
+
     public void OnClientMessage(Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel) {
         using (Packet receivedPacket = new Packet(data, size)) {
             PacketType packetType = receivedPacket.GetPacketType();
@@ -252,7 +301,8 @@ public class ServerManager : MonoBehaviour {
                 case PacketType.OnAuthTicket:
                     //this.HandleAuthTicket(connection, receivedPacket);
                     break;
-                case PacketType.OnRPCMessage: // handle rpcs here and forward them to the correct function
+                case PacketType.OnRPCMessage:
+                    this.TransportPacket(connection, receivedPacket);
                     break;
                 default:
                     break;
@@ -266,6 +316,7 @@ public class ServerManager : MonoBehaviour {
 
         using (Packet packet = new Packet(PacketType.OnRPCMessage))
         {
+            packet.Write("CL_OnWorldReceive");
             packet.Write(SaveManager.GetSaveFile());
             packet.Send(connection, SendType.Reliable);
             Debug.Log("sending save file to client");

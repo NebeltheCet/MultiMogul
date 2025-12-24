@@ -11,6 +11,7 @@ public class MultiMogulBase : BaseUnityPlugin
 {
     internal static new ManualLogSource Logger;
     public GameObject steamObject;
+    public GameObject threadDispatcherObject;
     public static SteamManager steamManager;
     public static ClientManager clientManager;
     public static ServerManager serverManager;
@@ -21,6 +22,10 @@ public class MultiMogulBase : BaseUnityPlugin
         clientManager = this.steamObject.AddComponent<ClientManager>();
         serverManager = this.steamObject.AddComponent<ServerManager>();
         DontDestroyOnLoad(this.steamObject);
+
+        this.threadDispatcherObject = new GameObject($"{MyPluginInfo.PLUGIN_NAME}_ThreadDispatcher");
+        this.threadDispatcherObject.AddComponent<ThreadDispatcher>();
+        DontDestroyOnLoad(this.threadDispatcherObject);
 
         var harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         harmony.PatchAll();

@@ -1,12 +1,15 @@
+using MultiMogul.MultiMogul;
+using MultiMogul.MultiMogul.Utilities;
+using Steamworks;
+using Steamworks.Data;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Steamworks.Data;
-using Steamworks;
+using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
-using UnityEngine;
 using TMPro;
-using MultiMogul.MultiMogul;
+using UnityEngine;
 
 public class ClientManager : MonoBehaviour {
     public static ClientManager Instance;
@@ -111,30 +114,73 @@ public class ClientManager : MonoBehaviour {
     //    // TODO: switch to server view
     //}
 
-    public void OnRPCMessage(Packet receivedPacket)
+    public void TransportPacket(Packet packet)
     {
-        Debug.Log("received rpc from server");
-        SaveManager.LoadGameplaySceneThenLoadSave(receivedPacket.ReadString());
-        AutoSaveManager.Instance.AutoSaveEnabled = false;
+        if (packet == null)
+        {
+            Debug.LogWarning("failed to handle packet: invalid packet!");
+            return;
+        }
+
+        int packetHash = packet.ReadString().GetHashCode();
+        ThreadDispatcher.Enqueue(() => {
+            Type[] allTypes = Assembly.GetExecutingAssembly().GetTypes();
+            foreach (Type type in allTypes)
+            {
+                MethodInfo[] methods = type.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                foreach (MethodInfo method in methods)
+                {
+                    if (method.GetCustomAttributes(typeof(Networkable), false).FirstOrDefault() is not Networkable attribute)
+                        continue;
+
+                    if (packet.GetPacketType() != PacketType.OnRPCMessage)
+                        continue;
+
+                    if (attribute.packetHash != packetHash)
+                        continue;
+
+                    if (method.IsStatic)
+                    {
+                        method.Invoke(null, new object[] { packet });
+                        return;
+                    }
+
+                    if (typeof(MonoBehaviour).IsAssignableFrom(type))
+                    {
+                        method.Invoke(UnityEngine.Object.FindObjectOfType(type), new object[] { packet });
+                        return;
+                    }
+
+                    method.Invoke(Activator.CreateInstance(type), new object[] { packet });
+                    return;
+                }
+            }
+
+            Debug.LogWarning($"failed to find handler for: {Enum.GetName(typeof(PacketType), packet.GetPacketType())}[{packetHash}]");
+        });
     }
 
     public void OnServerMessage(IntPtr data, int size, long messageNum, long recvTime, int channel) {
-        using (Packet packet = new Packet(data, size)) {
+        Packet packet = new Packet(data, size);
+
+        //using (Packet packet = new Packet(data, size)) {
             PacketType packetType = packet.GetPacketType();
             switch (packetType) {
                 case PacketType.OnConnectionApproved:
                     this.OnConnectionApproved(packet);
+                    packet.Dispose();
                     break;
                 case PacketType.OnAuthTicketResponse:
                     //this.OnAuthTicketResponse(packet);
+                    packet.Dispose();
                     break;
                 case PacketType.OnRPCMessage: // handle rpcs here and forward them to the correct function
-                    OnRPCMessage(packet);
+                    this.TransportPacket(packet);
                     break;
                 default:
                     break;
             }
-        }
+        //}
     }
 
     private class ClientConnection : ConnectionManager {
