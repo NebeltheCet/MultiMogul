@@ -88,6 +88,10 @@ namespace MultiMogul.MultiMogul
             this.writer.Write(value.Length); // prefix with length
             this.writer.Write(value);
         }
+        public void Write(bool value)
+        {
+            this.writer.Write(value);
+        }
 
         public byte[] ToArray() => this.stream.ToArray();
         public int Length => (int)this.stream.Length;
@@ -119,6 +123,11 @@ namespace MultiMogul.MultiMogul
         {
             int length = this.reader.ReadInt32(); // read length first
             return this.reader.ReadBytes(length);
+        }
+
+        public bool ReadBool()
+        {
+            return this.reader.ReadBoolean();
         }
 
         public void ResetReader() => this.stream.Position = 0;
