@@ -117,6 +117,7 @@ namespace MultiMogul.MultiMogul.Entities
         {
             if ((Time.realtimeSinceStartup - lastServerTickTime) > intervalPerTick)
             {
+                int newSeed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
                 foreach (var player in activePlayerList)
                 {
                     using (Packet packet = new Packet(PacketType.OnRPCMessage))
@@ -127,6 +128,7 @@ namespace MultiMogul.MultiMogul.Entities
                         packet.Write(player.position);
                         packet.Write(player.rotation);
                         packet.Write(player.scale);
+                        packet.Write(newSeed);
 
                         foreach (var kvp in ServerManager.Instance.connectedClients)
                         {
@@ -137,6 +139,8 @@ namespace MultiMogul.MultiMogul.Entities
                         }
                     }
                 }
+
+                UnityEngine.Random.InitState(newSeed);
 
                 lastServerTickTime = Time.realtimeSinceStartup;
             }
@@ -249,6 +253,9 @@ namespace MultiMogul.MultiMogul.Entities
             existingPlayer.position = receivedPacket.ReadVector3();
             existingPlayer.rotation = receivedPacket.ReadQuaternion();
             existingPlayer.scale = receivedPacket.ReadVector3();
+
+            // sync random seed with the server
+            UnityEngine.Random.InitState(receivedPacket.ReadInt32());
 
             //Debug.LogWarning($"received player tick for player {steamId}");
 
