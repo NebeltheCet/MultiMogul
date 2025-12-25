@@ -138,6 +138,8 @@ namespace MultiMogul.MultiMogul.Utilities
                 {
                     saveLoadableStaticBreakable.DestroyFromLoading();
                 }
+
+                NetworkedObjectRegistry.Register<GameObject>(((MonoBehaviour)saveLoadableStaticBreakable).gameObject);
             }
 
             foreach (SaveEntry saveEntry in saveFile.Entries)
