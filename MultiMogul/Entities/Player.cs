@@ -25,7 +25,9 @@ namespace MultiMogul.MultiMogul.Entities
 
         private float lastTickTime = 0f;
         private static float lastServerTickTime = 0f;
-        private const float intervalPerTick = (1f / 32f); // 32 ticks per second
+
+        private const int tickRate = 20;
+        private const float intervalPerTick = (1f / tickRate);
 
 
         private static void CreateObject()
@@ -141,7 +143,6 @@ namespace MultiMogul.MultiMogul.Entities
                 }
 
                 UnityEngine.Random.InitState(newSeed);
-
                 lastServerTickTime = Time.realtimeSinceStartup;
             }
         }
