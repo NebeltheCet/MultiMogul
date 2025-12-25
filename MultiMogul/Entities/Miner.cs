@@ -13,7 +13,7 @@ namespace MultiMogul.MultiMogul.Entities
 {
     public class Miner
     {
-        public static void SendOreSpawn(Vector3 objectPositionn, int randomSeed)
+        public static void SendOreSpawn(Vector3 objectPositionn, float randomValue)
         {
             foreach (var kvp in MultiMogulBase.serverManager.connectedClients)
             {
@@ -22,7 +22,7 @@ namespace MultiMogul.MultiMogul.Entities
                     packet.Write("CL_OnMinerOreSpawn");
 
                     packet.Write(objectPositionn);
-                    packet.Write(randomSeed);
+                    packet.Write(randomValue);
 
                     packet.Send(kvp.Key, SendType.Reliable);
                 }
@@ -63,8 +63,14 @@ namespace MultiMogul.MultiMogul.Entities
         [Networkable("CL_OnMinerOreSpawn")]
         static public void OnMinerOreSpawn(Packet receivedPacket)
         {
+            if (ClientManager.IsHost())
+            {
+                receivedPacket.Dispose();
+                return;
+            }
+
             Vector3 objectPosition = receivedPacket.ReadVector3();
-            int randomSeed = receivedPacket.ReadInt32();
+            float randomValue = receivedPacket.ReadSingle();
 
             GameObject minerObject = NetworkedObjectRegistry.GetFromPosition(objectPosition);
             if (minerObject != null)
@@ -72,10 +78,7 @@ namespace MultiMogul.MultiMogul.Entities
                 AutoMiner minerComponent = minerObject.GetComponent<AutoMiner>();
                 if (minerComponent != null)
                 {
-                    MethodInfo method = minerComponent.GetType().GetMethod("TrySpawnOre", BindingFlags.NonPublic | BindingFlags.Instance);
-
-                    UnityEngine.Random.InitState(randomSeed);
-                    method.Invoke(minerComponent, null);
+                    MinerHooks.TrySpawnOre(minerComponent, randomValue);
                 }
             }
 

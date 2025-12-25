@@ -3,8 +3,10 @@ using MultiMogul.MultiMogul.Entities;
 using MultiMogul.MultiMogul.Utilities;
 using Steamworks.Data;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -15,6 +17,11 @@ namespace MultiMogul.MultiMogul.Hooks
     public class MinerHooks
     {
         public static bool allowOverride = false;
+        public class WeightedOre
+        {
+            public OrePiece OrePrefab;
+            public float Weight = 100f;
+        }
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(AutoMiner), "TurnOn")]
@@ -58,16 +65,82 @@ namespace MultiMogul.MultiMogul.Hooks
             return true;
         }
 
-        [HarmonyPrefix]
-        [HarmonyPatch(typeof(AutoMiner), "TrySpawnOre")]
-        public static void PreTrySpawnOre(AutoMiner __instance)
+        public static OrePiece GetOrePrefab(AutoMinerResourceDefinition autoMinerInstance, ref float value)
+        {
+            if (float.IsNaN(value))
+            {
+                value = UnityEngine.Random.value;
+            }
+
+            if (autoMinerInstance == null)
+                return null;
+
+            Type autoMinerType = autoMinerInstance.GetType();
+            FieldInfo prefabsField = autoMinerType.GetField("_possibleOrePrefabs", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (prefabsField == null)
+                return null;
+
+            var prefabsList = prefabsField.GetValue(autoMinerInstance) as IEnumerable;
+            if (prefabsList == null)
+                return null;
+
+            List<object> weightedOreList = [.. prefabsList];
+            if (weightedOreList.Count == 0)
+                return null;
+
+            Type weightedOreType = weightedOreList[0].GetType();
+            FieldInfo weightField = weightedOreType.GetField("Weight", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo prefabField = weightedOreType.GetField("OrePrefab", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+            if (weightField == null || prefabField == null)
+                return null;
+
+            float totalWeight = 0f;
+            foreach (var weightedOre in weightedOreList)
+            {
+                totalWeight += (float)weightField.GetValue(weightedOre);
+            }
+
+            float randomValue = value * totalWeight;
+            float accumulated = 0f;
+
+            foreach (var weightedOre in weightedOreList)
+            {
+                float weight = (float)weightField.GetValue(weightedOre);
+                accumulated += weight;
+
+                if (randomValue > accumulated)
+                    continue;
+
+                return (OrePiece)prefabField.GetValue(weightedOre);
+            }
+
+            return (OrePiece)prefabField.GetValue(weightedOreList[weightedOreList.Count - 1]);
+        }
+
+        public static void TrySpawnOre(AutoMiner __instance, float value)
         {
             OrePiece createdOre = null;
-            int orePrefabSeed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
-            UnityEngine.Random.InitState(orePrefabSeed);
-            if (UnityEngine.Random.Range(0f, 100f) <= __instance.SpawnProbability)
+            float oreRandomValue = float.NaN;
+
+            bool probabilityPass = true;
+            if (ClientManager.IsHost())
             {
-                OrePiece orePiece = __instance.ResourceDefinition.GetOrePrefab();
+                probabilityPass = UnityEngine.Random.Range(0f, 100f) <= __instance.SpawnProbability;
+            }
+
+            if (probabilityPass)
+            {
+                OrePiece orePiece = null;
+                if (ClientManager.IsHost())
+                {
+                    orePiece = GetOrePrefab(__instance.ResourceDefinition, ref oreRandomValue);
+                }
+                else
+                {
+                    orePiece = GetOrePrefab(__instance.ResourceDefinition, ref value);
+                }
+
                 if (orePiece == null)
                 {
                     orePiece = __instance.FallbackOrePrefab;
@@ -83,11 +156,19 @@ namespace MultiMogul.MultiMogul.Hooks
             {
                 if (ClientManager.IsHost())
                 {
-                    Miner.SendOreSpawn(__instance.transform.position, orePrefabSeed);
+                    Miner.SendOreSpawn(__instance.transform.position, oreRandomValue);
                 }
 
                 NetworkedObjectRegistry.Register<GameObject>(createdOre.gameObject);
             }
+        }
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(AutoMiner), "TrySpawnOre")]
+        public static bool PreTrySpawnOre(AutoMiner __instance)
+        {
+            TrySpawnOre(__instance, float.NaN);
+            return false;
         }
     }
 }
