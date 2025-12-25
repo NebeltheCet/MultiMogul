@@ -1,4 +1,5 @@
 ﻿using DG.Tweening.Core.Easing;
+using MultiMogul.MultiMogul.Hooks;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,22 +15,6 @@ namespace MultiMogul.MultiMogul.Utilities
 {
     public class SaveManager
     {
-        public static List<GameObject> networkedObjects = new List<GameObject>();
-        public static void AddNetworkComponent<T>(T gameObject) where T : UnityEngine.Object
-        {
-            if (gameObject == null)
-            {
-                Debug.LogWarning("AddNetworkComponent called with null GameObject!");
-                return;
-            }
-
-            gameObject.AddComponent<NetworkedObject>();
-            gameObject.GetComponent<NetworkedObject>().networkID = NetworkedObject.nextNetworkId;
-            NetworkedObject.nextNetworkId += 1;
-
-            networkedObjects.Add(gameObject.GameObject());
-        }
-
         public static string GetSaveFile()
         {
             SaveFileHeader saveFileHeader = new SaveFileHeader();
@@ -117,8 +102,7 @@ namespace MultiMogul.MultiMogul.Utilities
 
 		public static void LoadSave(string save)
 		{
-            NetworkedObject.nextNetworkId = 0;
-            networkedObjects.Clear();
+            NetworkedObjectRegistry.Clear();
 
             SavingLoadingManager saveLoadManager = SavingLoadingManager.Instance;
 
@@ -161,10 +145,12 @@ namespace MultiMogul.MultiMogul.Utilities
                 GameObject prefab = saveLoadManager.GetPrefab(saveEntry.SavableObjectID);
                 ISaveLoadableObject saveLoadableObject2;
                 GameObject obj = UnityEngine.Object.Instantiate<GameObject>(prefab, saveEntry.Position, Quaternion.Euler(saveEntry.Rotation));
-                AddNetworkComponent<GameObject>(obj);
+                NetworkedObjectRegistry.Register<GameObject>(obj);
                 if (prefab != null && obj.TryGetComponent<ISaveLoadableObject>(out saveLoadableObject2))
                 {
+                    MinerHooks.allowOverride = true;
                     saveLoadableObject2.LoadFromSave(saveEntry.CustomDataJson);
+                    MinerHooks.allowOverride = false;
                 }
             }
 
@@ -183,7 +169,7 @@ namespace MultiMogul.MultiMogul.Utilities
                         orePiece.PolishedPercent = orePieceEntry.PolishedPercent;
                     }
 
-                    AddNetworkComponent<OrePiece>(orePiece);
+                    NetworkedObjectRegistry.Register<OrePiece>(orePiece);
                 }
             }
 

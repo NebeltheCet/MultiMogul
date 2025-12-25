@@ -15,12 +15,11 @@ namespace MultiMogul.MultiMogul.Hooks
     [HarmonyPatch]
     public class StartServer
     {
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         [HarmonyPatch(typeof(SavingLoadingManager), nameof(SavingLoadingManager.LoadGame))]
         public static bool PreLoadGame(SavingLoadingManager __instance, string fullFilePath)
         {
-            NetworkedObject.nextNetworkId = 0;
-            SaveManager.networkedObjects.Clear();
+            NetworkedObjectRegistry.Clear();
 
             PropertyInfo IsCurrentlyLoadingGame = typeof(SavingLoadingManager).GetProperty("IsCurrentlyLoadingGame", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             FieldInfo _destroyedStaticBreakablePositions = typeof(SavingLoadingManager).GetField("_destroyedStaticBreakablePositions", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -61,10 +60,12 @@ namespace MultiMogul.MultiMogul.Hooks
                 GameObject prefab = __instance.GetPrefab(saveEntry.SavableObjectID);
                 ISaveLoadableObject saveLoadableObject2;
                 GameObject obj = UnityEngine.Object.Instantiate<GameObject>(prefab, saveEntry.Position, Quaternion.Euler(saveEntry.Rotation));
-                SaveManager.AddNetworkComponent<GameObject>(obj);
+                NetworkedObjectRegistry.Register<GameObject>(obj);
                 if (prefab != null && obj.TryGetComponent<ISaveLoadableObject>(out saveLoadableObject2))
                 {
+                    MinerHooks.allowOverride = true;
                     saveLoadableObject2.LoadFromSave(saveEntry.CustomDataJson);
+                    MinerHooks.allowOverride = false;
                 }
             }
 
@@ -83,7 +84,7 @@ namespace MultiMogul.MultiMogul.Hooks
                         orePiece.PolishedPercent = orePieceEntry.PolishedPercent;
                     }
 
-                    SaveManager.AddNetworkComponent<OrePiece>(orePiece);
+                    NetworkedObjectRegistry.Register<OrePiece>(orePiece);
                 }
             }
 
