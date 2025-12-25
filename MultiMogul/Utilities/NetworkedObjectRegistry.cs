@@ -53,6 +53,11 @@ namespace MultiMogul.MultiMogul.Utilities
             return closestObject;
         }
 
+        public static void RemoveAllMatching(GameObject other)
+        {
+            networkedObjects.RemoveAll(x => x == other);
+        }
+
         public static void Clear()
         {
             networkedObjects.Clear();
