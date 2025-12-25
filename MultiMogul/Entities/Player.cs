@@ -104,7 +104,7 @@ namespace MultiMogul.MultiMogul.Entities
                         packet.Write(this.rotation);
                         packet.Write(this.scale);
 
-                        if (ServerManager.Instance?.currentLobby.Id == 0 && ClientManager.Instance != null && ClientManager.Instance.connection != null)
+                        if (!ClientManager.IsHost())
                         {
                             packet.Send(ClientManager.Instance.connection.Connection, SendType.Unreliable);
                         }

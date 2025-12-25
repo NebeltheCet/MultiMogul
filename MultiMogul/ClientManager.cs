@@ -198,6 +198,11 @@ public class ClientManager : MonoBehaviour {
         //}
     }
 
+    public static bool IsHost()
+    {
+        return !(ServerManager.Instance?.currentLobby.Id == 0 && ClientManager.Instance != null && ClientManager.Instance.connection != null);
+    }
+
     private class ClientConnection : ConnectionManager {
         public override void OnDisconnected(ConnectionInfo info) {
             Debug.Log($"disconnected by server");
