@@ -9,6 +9,7 @@ namespace MultiMogul.MultiMogul.Entities
 {
     public class AutoMiner
     {
+        // this function will be called by clients to send an update to the server
         public static void SendUpdate(int ID, bool value)
         {
             
