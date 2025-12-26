@@ -122,21 +122,27 @@ namespace MultiMogul.MultiMogul.Entities
                     orePrefab = GetOrePrefab(_instance, ref oreRandomValue);
                 }
 
-                Rigidbody component = UnityEngine.Object.Instantiate<OrePiece>(orePrefab, vector, Quaternion.identity).GetComponent<Rigidbody>();
-                if (component != null)
+                OrePiece orePiece = UnityEngine.Object.Instantiate<OrePiece>(orePrefab, vector, Quaternion.identity);
+                if (orePiece != null)
                 {
-                    component.linearVelocity = new Vector3(UnityEngine.Random.Range(-1.5f, 1.5f), UnityEngine.Random.Range(2f, 4f), UnityEngine.Random.Range(-1.5f, 1.5f));
-                    component.angularVelocity = UnityEngine.Random.insideUnitSphere * UnityEngine.Random.Range(1f, 50f);
-                    if (receivedPacket != null)
+                    Rigidbody component = orePiece.GetComponent<Rigidbody>();
+                    if (component != null)
                     {
-                        component.linearVelocity = receivedPacket.ReadVector3();
-                        component.angularVelocity = receivedPacket.ReadVector3();
+                        component.linearVelocity = new Vector3(UnityEngine.Random.Range(-1.5f, 1.5f), UnityEngine.Random.Range(2f, 4f), UnityEngine.Random.Range(-1.5f, 1.5f));
+                        component.angularVelocity = UnityEngine.Random.insideUnitSphere * UnityEngine.Random.Range(1f, 50f);
+                        if (receivedPacket != null)
+                        {
+                            component.linearVelocity = receivedPacket.ReadVector3();
+                            component.angularVelocity = receivedPacket.ReadVector3();
+                        }
+                        else
+                        {
+                            packet.Write(component.linearVelocity);
+                            packet.Write(component.angularVelocity);
+                        }
                     }
-                    else
-                    {
-                        packet.Write(component.linearVelocity);
-                        packet.Write(component.angularVelocity);
-                    }
+
+                    NetworkedObjectRegistry.Register<OrePiece>(orePiece);
                 }
             }
 
