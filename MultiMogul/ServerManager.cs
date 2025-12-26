@@ -96,6 +96,11 @@ public class ServerManager : MonoBehaviour
         Player.OnServerUpdate();
     }
 
+    private void OnGUI()
+    {
+        Player.OnGUI();
+    }
+
     public void StartServer()
     {
         if (this.serverSocket != null)

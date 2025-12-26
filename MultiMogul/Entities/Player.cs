@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TMPro;
 using UnityEngine;
 
 namespace MultiMogul.MultiMogul.Entities
@@ -15,6 +16,7 @@ namespace MultiMogul.MultiMogul.Entities
         public Quaternion rotation;
         public Vector3 scale;
         public SteamId steamId;
+        public string playerName;
 
         public bool isLocalPlayer;
         public bool wasCreated;
@@ -73,9 +75,13 @@ namespace MultiMogul.MultiMogul.Entities
                     if (playerObject != null)
                     {
                         this.playerObject = playerObject;
+                        this.playerObject.name = $"Player_{this.steamId}";
                     }
                 }
 
+                Friend friend = new Friend(this.steamId);
+
+                this.playerName = friend.Name;
                 this.wasCreated = this.playerObject != null;
             }
 
@@ -112,6 +118,46 @@ namespace MultiMogul.MultiMogul.Entities
 
                     this.lastTickTime = Time.realtimeSinceStartup;
                 }
+            }
+        }
+
+        public static void OnGUI()
+        {
+            foreach (var player in activePlayerList)
+            {
+                if (player.isLocalPlayer)
+                    continue;
+
+                if (player.playerObject == null)
+                    continue;
+
+                Vector3 screenPos = Camera.main.WorldToScreenPoint(player.playerObject.transform.position + new Vector3(0f, player.scale.y + 0.15f, 0f));
+                if (screenPos.z < 0f)
+                    continue;
+
+                GUIStyle defaultStyle = new GUIStyle(GUI.skin.label);
+                defaultStyle.alignment = TextAnchor.UpperLeft;
+                defaultStyle.fontSize = 14;
+                defaultStyle.normal.textColor = UnityEngine.Color.white;
+                defaultStyle.fontStyle = FontStyle.Normal;
+
+                GUIStyle shadowStyle = new GUIStyle(GUI.skin.label);
+                shadowStyle.alignment = TextAnchor.UpperLeft;
+                shadowStyle.fontSize = 14;
+                shadowStyle.normal.textColor = UnityEngine.Color.black;
+                shadowStyle.fontStyle = FontStyle.Normal;
+
+                GUIContent content = new GUIContent(player.playerName);
+
+                Vector2 rectSize = defaultStyle.CalcSize(content);
+                Vector2 textPosition = new Vector2(screenPos.x - (rectSize.x / 2f), (Screen.height - screenPos.y) - (rectSize.y / 2f));
+
+                GUI.Label(new Rect(textPosition.x - 1f, textPosition.y - 1f, rectSize.x, rectSize.y), player.playerName, shadowStyle);
+                GUI.Label(new Rect(textPosition.x - 1f, textPosition.y + 1f, rectSize.x, rectSize.y), player.playerName, shadowStyle);
+                GUI.Label(new Rect(textPosition.x + 1f, textPosition.y + 1f, rectSize.x, rectSize.y), player.playerName, shadowStyle);
+                GUI.Label(new Rect(textPosition.x + 1f, textPosition.y - 1f, rectSize.x, rectSize.y), player.playerName, shadowStyle);
+
+                GUI.Label(new Rect(textPosition.x, textPosition.y, rectSize.x, rectSize.y), player.playerName, defaultStyle);
             }
         }
 

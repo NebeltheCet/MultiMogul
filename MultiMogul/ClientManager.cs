@@ -48,6 +48,11 @@ public class ClientManager : MonoBehaviour {
         }
     }
 
+    private void OnGUI()
+    {
+        Player.OnGUI();
+    }
+
     public void ConnectToServer() {
         ulong hostSteamId = this.connectedServerId;
         if (!SteamManager.Instance.IsInitialized) {
