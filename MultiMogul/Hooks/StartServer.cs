@@ -19,10 +19,12 @@ namespace MultiMogul.MultiMogul.Hooks
         [HarmonyPatch(typeof(SavingLoadingManager), nameof(SavingLoadingManager.LoadGame))]
         public static bool PreLoadGame(SavingLoadingManager __instance, string fullFilePath)
         {
-            NetworkedObjectRegistry.Clear();
-
             PropertyInfo IsCurrentlyLoadingGame = typeof(SavingLoadingManager).GetProperty("IsCurrentlyLoadingGame", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             FieldInfo _destroyedStaticBreakablePositions = typeof(SavingLoadingManager).GetField("_destroyedStaticBreakablePositions", BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo ClearCart = typeof(ComputerShopUI).GetMethod("ClearCart", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            ClearCart.Invoke(UIManager.Instance?.ComputerShopUI, null);
+            NetworkedObjectRegistry.Clear();
 
             IsCurrentlyLoadingGame.SetValue(__instance, true);
             if (!File.Exists(fullFilePath))
