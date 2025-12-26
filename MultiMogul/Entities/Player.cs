@@ -188,6 +188,17 @@ namespace MultiMogul.MultiMogul.Entities
                     }
                 }
 
+                using (Packet packet = new Packet(PacketType.OnRPCMessage))
+                {
+                    packet.Write("CL_OnReceiveState");
+
+                    packet.Write(EconomyManager.Instance.Money);
+                    foreach (var kvp in ServerManager.Instance.connectedClients)
+                    {
+                        packet.Send(kvp.Key, SendType.Unreliable);
+                    }
+                }
+
                 UnityEngine.Random.InitState(newSeed);
                 lastServerTickTime = Time.realtimeSinceStartup;
             }
@@ -223,6 +234,16 @@ namespace MultiMogul.MultiMogul.Entities
             }
 
             Debug.Log("sent player list to clients");
+        }
+
+        [Networkable("CL_OnReceiveState")]
+        static public void OnReceiveState(Packet receivedPacket)
+        {
+            float money = receivedPacket.ReadSingle();
+
+            EconomyManager.Instance?.SetMoney(money);
+
+            receivedPacket.Dispose();
         }
 
         [Networkable("CL_OnPlayerListReceive")]
