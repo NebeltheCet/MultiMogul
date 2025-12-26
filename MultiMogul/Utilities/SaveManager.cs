@@ -102,12 +102,14 @@ namespace MultiMogul.MultiMogul.Utilities
 
 		public static void LoadSave(string save)
 		{
-            NetworkedObjectRegistry.Clear();
-
             SavingLoadingManager saveLoadManager = SavingLoadingManager.Instance;
 
             PropertyInfo IsCurrentlyLoadingGame = typeof(SavingLoadingManager).GetProperty("IsCurrentlyLoadingGame", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             FieldInfo _destroyedStaticBreakablePositions = typeof(SavingLoadingManager).GetField("_destroyedStaticBreakablePositions", BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo ClearCart = typeof(ComputerShopUI).GetMethod("ClearCart", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            ClearCart.Invoke(UIManager.Instance?.ComputerShopUI, null);
+            NetworkedObjectRegistry.Clear();
 
             IsCurrentlyLoadingGame.SetValue(saveLoadManager, true);
             if (save.Length <= 0)

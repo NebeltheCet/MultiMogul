@@ -66,6 +66,8 @@ namespace MultiMogul.MultiMogul.Entities
                     packet.Write(quantity);
 
                     packet.Send(kvp.Key, SendType.Reliable);
+
+                    Debug.Log($"Sent add to cart network message for item ID {itemId} x{quantity} to client.");
                 }
             }
 
@@ -159,6 +161,42 @@ namespace MultiMogul.MultiMogul.Entities
                     ComputerShopHooks.allowOverride = false;
                 }
             }
+        }
+
+        [Networkable("SV_ShopOnPurchase")]
+        public static void ShopOnPurchaseServer(Connection connection, Packet receivedPacket)
+        {
+            SetUpShop();
+
+            ComputerShopHooks.allowOverride = true;
+            UIManager.Instance?.ComputerShopUI?.PurchaseCart();
+            ComputerShopHooks.allowOverride = false;
+
+            foreach (var kvp in MultiMogulBase.serverManager.connectedClients)
+            {
+                if (kvp.Key == connection)
+                    continue;
+
+                using (Packet packet = new Packet(PacketType.OnRPCMessage))
+                {
+                    packet.Write("CL_ShopOnPurchase");
+                    packet.Send(kvp.Key, SendType.Reliable);
+                }
+            }
+
+            receivedPacket.Dispose();
+        }
+
+        [Networkable("CL_ShopOnPurchase")]
+        public static void ShopOnPurchase(Packet receivedPacket)
+        {
+            SetUpShop();
+
+            ComputerShopHooks.allowOverride = true;
+            UIManager.Instance?.ComputerShopUI?.PurchaseCart();
+            ComputerShopHooks.allowOverride = false;
+
+            receivedPacket.Dispose();
         }
 
         // this sets up the shop categories if they arent already set up

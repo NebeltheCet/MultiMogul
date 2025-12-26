@@ -188,14 +188,17 @@ namespace MultiMogul.MultiMogul.Entities
                     }
                 }
 
-                using (Packet packet = new Packet(PacketType.OnRPCMessage))
+                if (EconomyManager.Instance != null)
                 {
-                    packet.Write("CL_OnReceiveState");
-
-                    packet.Write(EconomyManager.Instance.Money);
-                    foreach (var kvp in ServerManager.Instance.connectedClients)
+                    using (Packet packet = new Packet(PacketType.OnRPCMessage))
                     {
-                        packet.Send(kvp.Key, SendType.Unreliable);
+                        packet.Write("CL_OnReceiveState");
+
+                        packet.Write(EconomyManager.Instance.Money);
+                        foreach (var kvp in ServerManager.Instance.connectedClients)
+                        {
+                            packet.Send(kvp.Key, SendType.Unreliable);
+                        }
                     }
                 }
 
