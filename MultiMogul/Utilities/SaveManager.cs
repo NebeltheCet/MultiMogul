@@ -100,6 +100,7 @@ namespace MultiMogul.MultiMogul.Utilities
                 saveFile.WorldEventEntries.Add(worldEventEntry);
             }
 
+            List<Vector3> destroyedStaticBreakablePositions = (List<Vector3>)_destroyedStaticBreakablePositions.GetValue(saveLoadManager);
             foreach (ISaveLoadableStaticBreakable saveLoadableStaticBreakable in UnityEngine.Object.FindObjectsOfType<MonoBehaviour>().OfType<ISaveLoadableStaticBreakable>())
             {
                 NetworkedObjectRegistry.Register<MonoBehaviour>((MonoBehaviour)saveLoadableStaticBreakable);
@@ -112,35 +113,18 @@ namespace MultiMogul.MultiMogul.Utilities
                 saveFile.ExistingStaticBreakablePositions.Add(existingEntry);
             }
 
-            List<Vector3> destroyedStaticBreakablePositions = (List<Vector3>)_destroyedStaticBreakablePositions.GetValue(saveLoadManager);
-            List<CustomStaticBreakableEntry> destroyedStaticBreakablePositionsNew = new List<CustomStaticBreakableEntry>();
-
             foreach (Vector3 pos in destroyedStaticBreakablePositions)
             {
-                ISaveLoadableStaticBreakable breakable = UnityEngine.Object
-                    .FindObjectsOfType<MonoBehaviour>()
-                    .OfType<ISaveLoadableStaticBreakable>()
-                    .FirstOrDefault(b => b.GetPosition() == pos);
-
-                if (breakable != null)
+                CustomStaticBreakableEntry existingEntry = new CustomStaticBreakableEntry
                 {
-                    NetworkedObjectRegistry.Register<MonoBehaviour>((MonoBehaviour)breakable);
-                    CustomStaticBreakableEntry staticBreakableEntry = new CustomStaticBreakableEntry
-                    {
-                        Position = pos,
-                        GUID = ((MonoBehaviour)breakable).GetComponent<NetworkedObject>()?.guid ?? ""
-                    };
+                    Position = pos,
+                    GUID = ""
+                };
 
-                    destroyedStaticBreakablePositionsNew.Add(staticBreakableEntry);
-                }
-                else
-                {
-                    //Debug.LogWarning($"Could not find ISaveLoadableStaticBreakable at position {pos}");
-                }
+                saveFile.DestroyedStaticBreakablePositions.Add(existingEntry);
             }
 
             saveFile.ShopPurchases = Singleton<EconomyManager>.Instance.ShopPurchases;
-            saveFile.DestroyedStaticBreakablePositions = destroyedStaticBreakablePositionsNew;
             saveFile.CompletedQuestsIDs = Singleton<QuestManager>.Instance.GetCompletedQuestIDs();
             saveFile.ActiveQuests = Singleton<QuestManager>.Instance.GetActiveQuestSaveEntries();
 
