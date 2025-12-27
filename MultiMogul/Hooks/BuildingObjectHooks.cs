@@ -37,7 +37,34 @@ namespace MultiMogul.MultiMogul.Hooks
                 Vector3 angularVelocity = new Vector3(UnityEngine.Random.Range(-num2, num2), UnityEngine.Random.Range(-num2, num2), UnityEngine.Random.Range(-num2, num2));
                 component.angularVelocity = angularVelocity;
             }
+
+            if (!ClientManager.IsHost())
+            {
+                using (Packet packet = new Packet(PacketType.OnRPCMessage))
+                {
+                    packet.Write("SV_DestroyObject");
+                    packet.Write(NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance));
+
+                    packet.Send(ClientManager.Instance.connection.Connection, SendType.Reliable);
+                }
+            }
+            else
+            {
+                foreach (var kvp in MultiMogulBase.serverManager.connectedClients)
+                {
+                    using (Packet packet = new Packet(PacketType.OnRPCMessage))
+                    {
+                        packet.Write("CL_DestroyObject");
+                        packet.Write(NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance));
+
+                        packet.Send(kvp.Key, SendType.Reliable);
+                    }
+                }
+            }
+
             UnityEngine.Object.Destroy(__instance.gameObject, 0f);
+
+
             //network destroy
 
             return false;
