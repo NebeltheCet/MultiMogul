@@ -90,7 +90,7 @@ namespace MultiMogul.MultiMogul.Hooks
 
                 using (Packet packet = new Packet(PacketType.OnRPCMessage))
                 {
-                    packet.Write("SV_OnOreGrabbed");
+                    packet.Write("CL_OnOreGrabbed");
 
                     packet.Write(oldPos);
                     packet.Write(newPos);
