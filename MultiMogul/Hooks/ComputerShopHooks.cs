@@ -52,14 +52,25 @@ namespace MultiMogul.MultiMogul.Hooks
 
                         packet.Send(kvp.Key, SendType.Reliable);
                     }
-                }
+                } 
             }
+        }
+
+        public static bool shouldFix = false;
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(ComputerShopUI), "AddToCart")]
+        public static void PreAddToCart(ComputerShopUI __instance, ShopItem item, int quantity)
+        {
+            shouldFix = true;
         }
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(ComputerShopUI), "AddToCart")]
         public static void PostAddToCart(ComputerShopUI __instance, ShopItem item, int quantity)
         {
+            shouldFix = false;
+
             if (allowOverride)
                 return;
 
@@ -98,7 +109,7 @@ namespace MultiMogul.MultiMogul.Hooks
         [HarmonyPatch(typeof(ShopCartItemButton), "ChangeQuantity")]
         static public void PostChangeQuantity(ShopCartItemButton __instance, int quantity)
         {
-            if (allowOverride)
+            if (allowOverride || shouldFix)
                 return;
 
             if (!ClientManager.IsHost())
@@ -129,5 +140,5 @@ namespace MultiMogul.MultiMogul.Hooks
                 }
             }
         }
-    }
+    }   
 }
