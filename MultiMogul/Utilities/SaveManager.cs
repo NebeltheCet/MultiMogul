@@ -306,8 +306,6 @@ namespace MultiMogul.MultiMogul.Utilities
 
         public static void LoadQuestsFromSaveFile(QuestManager _instance, CustomSaveFile saveFile)
         {
-            Debug.Log($"loading quests from save file[{saveFile.CompletedQuestsIDs.Count}]");
-
             FieldInfo QuestCompleted = _instance.GetType().GetField("QuestCompleted", BindingFlags.Instance | BindingFlags.NonPublic);
 
             _instance.ActiveQuests.Clear();
@@ -326,17 +324,11 @@ namespace MultiMogul.MultiMogul.Utilities
                 }
             }
 
-            Debug.Log("finished loading quests from save file");
-
-            Debug.Log($"loading active quest ids from save file[{saveFile.ActiveQuestsIDs.Count}]");
             foreach (QuestID activeQuestsID in saveFile.ActiveQuestsIDs)
             {
                 _instance.ActiveQuests.Add(Singleton<SavingLoadingManager>.Instance.GetQuestDefinition(activeQuestsID).GenerateQuest());
             }
 
-            Debug.Log("finished loading active quest ids from save file");
-
-            Debug.Log($"loading active quests from save file[{saveFile.ActiveQuests.Count}]");
             foreach (ActiveQuestEntry activeQuest in saveFile.ActiveQuests)
             {
                 Quest quest2 = Singleton<SavingLoadingManager>.Instance.GetQuestDefinition(activeQuest.QuestID).GenerateQuest();
@@ -354,9 +346,6 @@ namespace MultiMogul.MultiMogul.Utilities
 
                 _instance.ActiveQuests.Add(quest2);
             }
-
-            
-            Debug.Log("finished loading active quests from save file");
 
             if (QuestCompleted != null)
             {

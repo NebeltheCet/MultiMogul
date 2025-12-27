@@ -1,4 +1,6 @@
-﻿using Steamworks;
+﻿using MultiMogul.MultiMogul.Utilities;
+using MultiMogul.MultiMogul.Utilities.CustomSave;
+using Steamworks;
 using Steamworks.Data;
 using System;
 using System.Collections.Generic;
@@ -26,7 +28,9 @@ namespace MultiMogul.MultiMogul.Entities
         private static GameObject playerPrefab;
 
         private float lastTickTime = 0f;
-        private static float lastServerTickTime = 0f;
+        private static float lastServerTickTime = 0f; // this one is used for base data that can be sent frequently
+        private static float lastServerTickTime2 = 0f; // this one is used for reliable data that needs to be sent less frequently
+        private static int lastQuestHash = -1;
 
         private const int tickRate = 20;
         private const float intervalPerTick = (1f / tickRate);
@@ -211,6 +215,37 @@ namespace MultiMogul.MultiMogul.Entities
             }
         }
 
+        public static void SendServerQuests()
+        {
+            if (QuestManager.Instance == null)
+                return;
+
+            List<QuestID> completedQuestIDs = QuestManager.Instance.GetCompletedQuestIDs();
+            List<ActiveQuestEntry> activeQuestEntries = QuestManager.Instance.GetActiveQuestSaveEntries();
+
+            string completedQuestIDsSerialized = Newtonsoft.Json.JsonConvert.SerializeObject(completedQuestIDs);
+            string activeQuestEntriesSerialized = Newtonsoft.Json.JsonConvert.SerializeObject(activeQuestEntries);
+
+            int currentHash = (completedQuestIDsSerialized + activeQuestEntriesSerialized).GetHashCode();
+            if (currentHash == lastQuestHash)
+                return;
+
+            using (Packet packet = new Packet(PacketType.OnRPCMessage))
+            {
+                packet.Write("CL_OnReceiveQuests");
+                packet.Write(completedQuestIDsSerialized);
+                packet.Write(activeQuestEntriesSerialized);
+
+                foreach (var kvp in ServerManager.Instance.connectedClients)
+                {
+                    packet.Send(kvp.Key, SendType.Reliable);
+                }
+            }
+
+            //Debug.Log($"sent quest updates to all clients[size: {(completedQuestIDsSerialized.Length + activeQuestEntriesSerialized.Length)}]");
+            lastQuestHash = currentHash;
+        }
+
         static public void OnServerUpdate()
         {
             if ((Time.realtimeSinceStartup - lastServerTickTime) > intervalPerTick)
@@ -219,6 +254,13 @@ namespace MultiMogul.MultiMogul.Entities
                 SendServerEconomy();
 
                 lastServerTickTime = Time.realtimeSinceStartup;
+            }
+
+            if ((Time.realtimeSinceStartup - lastServerTickTime2) > (intervalPerTick * (tickRate / 8)))
+            {
+                SendServerQuests();
+
+                lastServerTickTime2 = Time.realtimeSinceStartup;
             }
         }
 
@@ -346,6 +388,22 @@ namespace MultiMogul.MultiMogul.Entities
 
             //Debug.LogWarning($"received player tick for player {steamId}");
 
+            receivedPacket.Dispose();
+        }
+
+        [Networkable("CL_OnReceiveQuests")]
+        static public void OnReceiveQuests(Packet receivedPacket)
+        {
+            string completedQuestIDsSerialized = receivedPacket.ReadString();
+            string activeQuestEntriesSerialized = receivedPacket.ReadString();
+
+            CustomSaveFile questSaveFile = new CustomSaveFile // this is stupid, but makes things a lot cleaner in the end
+            {
+                CompletedQuestsIDs = Newtonsoft.Json.JsonConvert.DeserializeObject<List<QuestID>>(completedQuestIDsSerialized),
+                ActiveQuests = Newtonsoft.Json.JsonConvert.DeserializeObject<List<ActiveQuestEntry>>(activeQuestEntriesSerialized)
+            };
+
+            SaveManager.LoadQuestsFromSaveFile(Singleton<QuestManager>.Instance, questSaveFile);
             receivedPacket.Dispose();
         }
 
