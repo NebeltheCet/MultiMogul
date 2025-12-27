@@ -36,7 +36,7 @@ namespace MultiMogul.MultiMogul.Hooks
                 return;
             }
 
-            Miner.SendUpdate(__instance.transform.position, true);
+            Miner.SendUpdate(NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance), true);
         }
 
         [HarmonyPostfix]
@@ -52,7 +52,7 @@ namespace MultiMogul.MultiMogul.Hooks
                 return;
             }
 
-            Miner.SendUpdate(__instance.transform.position, false);
+            Miner.SendUpdate(NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance), false);
         }
 
         [HarmonyPrefix]
@@ -156,7 +156,7 @@ namespace MultiMogul.MultiMogul.Hooks
             {
                 if (ClientManager.IsHost())
                 {
-                    Miner.SendOreSpawn(__instance.transform.position, oreRandomValue);
+                    Miner.SendOreSpawn(NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance), oreRandomValue);
                 }
 
                 NetworkedObjectRegistry.Register<GameObject>(createdOre.gameObject);

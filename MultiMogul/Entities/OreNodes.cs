@@ -80,7 +80,7 @@ namespace MultiMogul.MultiMogul.Entities
         {
             Packet packet = new Packet(PacketType.OnRPCMessage);
             packet.Write("CL_OnBreakOreNode");
-            packet.Write(_instance.transform.position);
+            packet.Write(NetworkedObjectRegistry.GetGUIDHashFromInstance(_instance));
             packet.Write(position);
 
             int num = UnityEngine.Random.Range(_instance.MinDrops, _instance.MaxDrops + 1);
@@ -158,6 +158,8 @@ namespace MultiMogul.MultiMogul.Entities
                 {
                     packet.Send(kvp.Key, SendType.Reliable);
                 }
+
+                Debug.Log($"sent \"CL_OnBreakOreNode\" rpc to all clients");
             }
 
             packet.Dispose();
@@ -166,10 +168,12 @@ namespace MultiMogul.MultiMogul.Entities
         [Networkable("CL_OnBreakOreNode")]
         public static void OnBreakOreNode(Packet receivedPacket)
         {
-            Vector3 objectPosition = receivedPacket.ReadVector3();
+            int objectId = receivedPacket.ReadInt32();
             Vector3 damagePosition = receivedPacket.ReadVector3();
 
-            GameObject nodeObject = NetworkedObjectRegistry.GetFromPosition(objectPosition);
+            Debug.Log("client received break ore node rpc");
+
+            GameObject nodeObject = NetworkedObjectRegistry.GetFromGUID(objectId);
             if (nodeObject != null)
             {
                 OreNode nodeComponent = nodeObject.GetComponent<OreNode>();
@@ -178,6 +182,8 @@ namespace MultiMogul.MultiMogul.Entities
                     OreNodeHooks.allowOverride = true;
                     BreakNode(nodeComponent, damagePosition, receivedPacket);
                     OreNodeHooks.allowOverride = false;
+
+                    Debug.Log("client broke ore node");
                 }
             }
 
@@ -187,10 +193,11 @@ namespace MultiMogul.MultiMogul.Entities
         [Networkable("SV_OnOreNodeTakeDamage")]
         public static void OnOreNodeTakeDamageServer(Connection connection, Packet receivedPacket)
         {
-            Vector3 objectPosition = receivedPacket.ReadVector3();
+            int objectId = receivedPacket.ReadInt32();
             float damageAmount = receivedPacket.ReadSingle();
             Vector3 damagePosition = receivedPacket.ReadVector3();
 
+            Debug.Log($"server received ore node take damage rpc for object id {objectId} with damage amount {damageAmount}");
             foreach (var kvp in MultiMogulBase.serverManager.connectedClients)
             {
                 if (kvp.Key == connection)
@@ -200,7 +207,7 @@ namespace MultiMogul.MultiMogul.Entities
                 {
                     packet.Write("CL_OnOreNodeTakeDamage");
 
-                    packet.Write(objectPosition);
+                    packet.Write(objectId);
                     packet.Write(damageAmount);
                     packet.Write(damagePosition);
 
@@ -208,7 +215,9 @@ namespace MultiMogul.MultiMogul.Entities
                 }
             }
 
-            GameObject nodeObject = NetworkedObjectRegistry.GetFromPosition(objectPosition);
+            Debug.Log("server sent ore node take damage rpc to all clients");
+
+            GameObject nodeObject = NetworkedObjectRegistry.GetFromGUID(objectId);
             if (nodeObject != null)
             {
                 OreNode nodeComponent = nodeObject.GetComponent<OreNode>();
@@ -217,6 +226,8 @@ namespace MultiMogul.MultiMogul.Entities
                     OreNodeHooks.allowOverride = true;
                     nodeComponent.TakeDamage(damageAmount, damagePosition);
                     OreNodeHooks.allowOverride = false;
+
+                    Debug.Log("server replicated damage to ore node");
                 }
             }
 
@@ -226,11 +237,13 @@ namespace MultiMogul.MultiMogul.Entities
         [Networkable("CL_OnOreNodeTakeDamage")]
         public static void OnOreNodeTakeDamage(Packet receivedPacket)
         {
-            Vector3 objectPosition = receivedPacket.ReadVector3();
+            int objectId = receivedPacket.ReadInt32();
             float damageAmount = receivedPacket.ReadSingle();
             Vector3 damagePosition = receivedPacket.ReadVector3();
 
-            GameObject nodeObject = NetworkedObjectRegistry.GetFromPosition(objectPosition);
+            Debug.Log($"client received ore node take damage rpc for object id {objectId} with damage amount {damageAmount}");
+
+            GameObject nodeObject = NetworkedObjectRegistry.GetFromGUID(objectId);
             if (nodeObject != null)
             {
                 OreNode nodeComponent = nodeObject.GetComponent<OreNode>();
@@ -239,6 +252,8 @@ namespace MultiMogul.MultiMogul.Entities
                     OreNodeHooks.allowOverride = true;
                     nodeComponent.TakeDamage(damageAmount, damagePosition);
                     OreNodeHooks.allowOverride = false;
+
+                    Debug.Log("client replicated damage to ore node");
                 }
             }
 

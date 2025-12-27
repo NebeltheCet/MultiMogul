@@ -1,4 +1,5 @@
 ﻿using DG.Tweening.Core.Easing;
+using MultiMogul.MultiMogul.Entities;
 using MultiMogul.MultiMogul.Hooks;
 using MultiMogul.MultiMogul.Utilities.CustomSave;
 using System;
@@ -46,6 +47,7 @@ namespace MultiMogul.MultiMogul.Utilities
                 if (!saveLoadableObject.ShouldBeSaved())
                     continue;
 
+                NetworkedObjectRegistry.Register<MonoBehaviour>((MonoBehaviour)saveLoadableObject);
                 CustomSaveEntry saveEntry = new CustomSaveEntry
                 {
                     SavableObjectID = saveLoadableObject.GetSavableObjectID(),
@@ -65,6 +67,7 @@ namespace MultiMogul.MultiMogul.Utilities
 
             foreach (OrePiece orePiece in UnityEngine.Object.FindObjectsOfType<OrePiece>())
             {
+                NetworkedObjectRegistry.Register<OrePiece>(orePiece);
                 CustomOrePieceEntry orePieceEntry = new CustomOrePieceEntry
                 {
                     Position = orePiece.transform.position,
@@ -85,20 +88,55 @@ namespace MultiMogul.MultiMogul.Utilities
                 if (!saveLoadableWorldEvent.GetHasHappened())
                     continue;
 
+                NetworkedObjectRegistry.Register<MonoBehaviour>((MonoBehaviour)saveLoadableWorldEvent);
                 CustomWorldEventEntry worldEventEntry = new CustomWorldEventEntry
                 {
                     SavableWorldEventType = saveLoadableWorldEvent.GetWorldEventType(),
                     WorldEventID = saveLoadableWorldEvent.GetWorldEventID(),
-                    CustomDataJson = saveLoadableWorldEvent.GetCustomSaveData()
+                    CustomDataJson = saveLoadableWorldEvent.GetCustomSaveData(),
+                    GUID = ((MonoBehaviour)saveLoadableWorldEvent).GetComponent<NetworkedObject>()?.guid ?? ""
                 };
 
                 saveFile.WorldEventEntries.Add(worldEventEntry);
             }
 
-            List<SerializableVector3> destroyedStaticBreakablePositionsNew = new List<SerializableVector3>();
-            foreach (Vector3 pos in (List<Vector3>)_destroyedStaticBreakablePositions.GetValue(saveLoadManager))
+            foreach (ISaveLoadableStaticBreakable saveLoadableStaticBreakable in UnityEngine.Object.FindObjectsOfType<MonoBehaviour>().OfType<ISaveLoadableStaticBreakable>())
             {
-                destroyedStaticBreakablePositionsNew.Add(new SerializableVector3(pos));
+                NetworkedObjectRegistry.Register<MonoBehaviour>((MonoBehaviour)saveLoadableStaticBreakable);
+                CustomStaticBreakableEntry existingEntry = new CustomStaticBreakableEntry
+                {
+                    Position = saveLoadableStaticBreakable.GetPosition(),
+                    GUID = ((MonoBehaviour)saveLoadableStaticBreakable).GetComponent<NetworkedObject>()?.guid ?? ""
+                };
+
+                saveFile.ExistingStaticBreakablePositions.Add(existingEntry);
+            }
+
+            List<Vector3> destroyedStaticBreakablePositions = (List<Vector3>)_destroyedStaticBreakablePositions.GetValue(saveLoadManager);
+            List<CustomStaticBreakableEntry> destroyedStaticBreakablePositionsNew = new List<CustomStaticBreakableEntry>();
+
+            foreach (Vector3 pos in destroyedStaticBreakablePositions)
+            {
+                ISaveLoadableStaticBreakable breakable = UnityEngine.Object
+                    .FindObjectsOfType<MonoBehaviour>()
+                    .OfType<ISaveLoadableStaticBreakable>()
+                    .FirstOrDefault(b => b.GetPosition() == pos);
+
+                if (breakable != null)
+                {
+                    NetworkedObjectRegistry.Register<MonoBehaviour>((MonoBehaviour)breakable);
+                    CustomStaticBreakableEntry staticBreakableEntry = new CustomStaticBreakableEntry
+                    {
+                        Position = pos,
+                        GUID = ((MonoBehaviour)breakable).GetComponent<NetworkedObject>()?.guid ?? ""
+                    };
+
+                    destroyedStaticBreakablePositionsNew.Add(staticBreakableEntry);
+                }
+                else
+                {
+                    //Debug.LogWarning($"Could not find ISaveLoadableStaticBreakable at position {pos}");
+                }
             }
 
             saveFile.ShopPurchases = Singleton<EconomyManager>.Instance.ShopPurchases;
@@ -120,90 +158,6 @@ namespace MultiMogul.MultiMogul.Utilities
             return text;
         }
 
-        public static string GetSoftSaveState()
-        {
-            SavingLoadingManager saveLoadManager = SavingLoadingManager.Instance;
-            FieldInfo _destroyedStaticBreakablePositions = saveLoadManager.GetType().GetField("_destroyedStaticBreakablePositions", BindingFlags.NonPublic | BindingFlags.Instance);
-
-            CustomSaveFile saveFile = new CustomSaveFile();
-            saveFile.SaveVersion = 3;
-            saveFile.GameVersion = Singleton<VersionManager>.Instance.VersionNumber;
-            saveFile.SaveTimestamp = DateTime.Now.ToString("o");
-            saveFile.Money = Singleton<EconomyManager>.Instance.Money;
-
-            HashSet<ISaveLoadableObject> hashSet = UnityEngine.Object.FindObjectsOfType<MonoBehaviour>().OfType<ISaveLoadableObject>().ToHashSet<ISaveLoadableObject>();
-            hashSet.AddRange(UnityEngine.Object.FindObjectOfType<PlayerInventory>().Items.Where((BaseHeldTool item) => item != null));
-
-            foreach (ISaveLoadableObject saveLoadableObject in hashSet)
-            {
-                if (!saveLoadableObject.ShouldBeSaved())
-                    continue;
-
-                CustomSaveEntry saveEntry = new CustomSaveEntry
-                {
-                    SavableObjectID = saveLoadableObject.GetSavableObjectID(),
-                    Position = saveLoadableObject.GetPosition(),
-                    Rotation = saveLoadableObject.GetRotation(),
-                    GUID = (saveLoadableObject as MonoBehaviour).GetComponent<NetworkedObject>()?.guid ?? ""
-                };
-
-                string customSaveData = saveLoadableObject.GetCustomSaveData();
-                if (!string.IsNullOrEmpty(customSaveData) && !customSaveData.Contains("\"IsInPlayerInventory\":true"))
-                {
-                    saveEntry.CustomDataJson = customSaveData;
-                }
-
-                NetworkedObjectRegistry.Register<MonoBehaviour>((saveLoadableObject as MonoBehaviour), saveEntry.GUID);
-                saveFile.Entries.Add(saveEntry);
-            }
-
-            foreach (OrePiece orePiece in UnityEngine.Object.FindObjectsOfType<OrePiece>())
-            {
-                CustomOrePieceEntry orePieceEntry = new CustomOrePieceEntry
-                {
-                    Position = orePiece.transform.position,
-                    Rotation = orePiece.transform.rotation.eulerAngles,
-                    Scale = orePiece.transform.localScale,
-                    MeshID = orePiece.MeshID,
-                    ResourceType = orePiece.ResourceType,
-                    PieceType = orePiece.PieceType,
-                    PolishedPercent = orePiece.PolishedPercent,
-                    GUID = orePiece.GetComponent<NetworkedObject>()?.guid ?? ""
-                };
-
-                NetworkedObjectRegistry.Register<OrePiece>(orePiece, orePieceEntry.GUID);
-                saveFile.OrePieces.Add(orePieceEntry);
-            }
-
-            foreach (ISaveLoadableWorldEvent saveLoadableWorldEvent in UnityEngine.Object.FindObjectsOfType<MonoBehaviour>().OfType<ISaveLoadableWorldEvent>().ToList<ISaveLoadableWorldEvent>())
-            {
-                if (!saveLoadableWorldEvent.GetHasHappened())
-                    continue;
-
-                CustomWorldEventEntry worldEventEntry = new CustomWorldEventEntry
-                {
-                    SavableWorldEventType = saveLoadableWorldEvent.GetWorldEventType(),
-                    WorldEventID = saveLoadableWorldEvent.GetWorldEventID(),
-                    CustomDataJson = saveLoadableWorldEvent.GetCustomSaveData()
-                };
-
-                saveFile.WorldEventEntries.Add(worldEventEntry);
-            }
-
-            List<SerializableVector3> destroyedStaticBreakablePositionsNew = new List<SerializableVector3>();
-            foreach (Vector3 pos in (List<Vector3>)_destroyedStaticBreakablePositions.GetValue(saveLoadManager))
-            {
-                destroyedStaticBreakablePositionsNew.Add(new SerializableVector3(pos));
-            }
-
-            saveFile.ShopPurchases = Singleton<EconomyManager>.Instance.ShopPurchases;
-            saveFile.DestroyedStaticBreakablePositions = destroyedStaticBreakablePositionsNew;
-            saveFile.CompletedQuestsIDs = Singleton<QuestManager>.Instance.GetCompletedQuestIDs();
-            saveFile.ActiveQuests = Singleton<QuestManager>.Instance.GetActiveQuestSaveEntries();
-
-            return Newtonsoft.Json.JsonConvert.SerializeObject(saveFile, Newtonsoft.Json.Formatting.Indented);
-        }
-
         public static void LoadGame(SavingLoadingManager saveLoadManager, string fullFilePath, bool isJsonString = false)
         {
             if (fullFilePath.Length <= 0)
@@ -214,6 +168,7 @@ namespace MultiMogul.MultiMogul.Utilities
             MethodInfo ClearCart = typeof(ComputerShopUI).GetMethod("ClearCart", BindingFlags.NonPublic | BindingFlags.Instance);
 
             ClearCart.Invoke(UIManager.Instance?.ComputerShopUI, null);
+            NetworkedObjectRegistry.Clear();
 
             IsCurrentlyLoadingGame.SetValue(saveLoadManager, true);
             if (!isJsonString)
@@ -262,9 +217,9 @@ namespace MultiMogul.MultiMogul.Utilities
             }
 
             List<Vector3> destroyedStaticBreakablePositionsNew = new List<Vector3>();
-            foreach (SerializableVector3 pos in saveFile.DestroyedStaticBreakablePositions)
+            foreach (CustomStaticBreakableEntry entry in saveFile.DestroyedStaticBreakablePositions)
             {
-                destroyedStaticBreakablePositionsNew.Add(pos.ToVector3());
+                destroyedStaticBreakablePositionsNew.Add(entry.Position.ToVector3());
             }
 
             Debug.Log("removing destroyed \"ISaveLoadableStaticBreakable\" objects");
@@ -279,6 +234,17 @@ namespace MultiMogul.MultiMogul.Utilities
             }
 
             Debug.Log("finished removing destroyed \"ISaveLoadableStaticBreakable\" objects");
+
+            foreach (CustomStaticBreakableEntry entry in saveFile.ExistingStaticBreakablePositions)
+            {
+                foreach (ISaveLoadableStaticBreakable saveLoadableStaticBreakable2 in UnityEngine.Object.FindObjectsOfType<MonoBehaviour>().OfType<ISaveLoadableStaticBreakable>())
+                {
+                    if (saveLoadableStaticBreakable2.GetPosition() != entry.Position.ToVector3())
+                        continue;
+
+                    NetworkedObjectRegistry.Register<MonoBehaviour>((MonoBehaviour)saveLoadableStaticBreakable2, entry.GUID);
+                }
+            }
 
             Debug.Log($"loading save entries[{saveFile.Entries.Count}]");
             foreach (CustomSaveEntry saveEntry in saveFile.Entries)
@@ -352,94 +318,6 @@ namespace MultiMogul.MultiMogul.Utilities
             saveLoadManager.LastSaveTime = Time.time;
             saveLoadManager.ActiveSaveFileName = isJsonString ? "Multiplayer Game" : Path.GetFileNameWithoutExtension(fullFilePath);
             IsCurrentlyLoadingGame.SetValue(saveLoadManager, false);
-        }
-
-        public static void SoftLoadState(string saveState)
-        {
-            SavingLoadingManager saveLoadManager = SavingLoadingManager.Instance;
-
-            FieldInfo _destroyedStaticBreakablePositions = saveLoadManager.GetType().GetField("_destroyedStaticBreakablePositions", BindingFlags.NonPublic | BindingFlags.Instance);
-
-            foreach (ISaveLoadableObject saveLoadableObject in UnityEngine.Object.FindObjectsOfType<MonoBehaviour>().OfType<ISaveLoadableObject>())
-            {
-                UnityEngine.Object.Destroy(((MonoBehaviour)saveLoadableObject).gameObject);
-            }
-
-            CustomSaveFile saveFile = Newtonsoft.Json.JsonConvert.DeserializeObject<CustomSaveFile>(saveState);
-
-            if (saveFile.SaveVersion != 1)
-            {
-                OrePiece[] array = UnityEngine.Object.FindObjectsOfType<OrePiece>();
-                for (int i = 0; i < array.Length; i++)
-                {
-                    UnityEngine.Object.Destroy(array[i].gameObject);
-                }
-            }
-
-            List<Vector3> destroyedStaticBreakablePositionsNew = new List<Vector3>();
-            foreach (SerializableVector3 pos in saveFile.DestroyedStaticBreakablePositions)
-            {
-                destroyedStaticBreakablePositionsNew.Add(pos.ToVector3());
-            }
-
-            _destroyedStaticBreakablePositions.SetValue(saveLoadManager, destroyedStaticBreakablePositionsNew);
-            foreach (ISaveLoadableStaticBreakable saveLoadableStaticBreakable in UnityEngine.Object.FindObjectsOfType<MonoBehaviour>().OfType<ISaveLoadableStaticBreakable>())
-            {
-                if (((List<Vector3>)_destroyedStaticBreakablePositions.GetValue(saveLoadManager)).Contains(saveLoadableStaticBreakable.GetPosition()))
-                {
-                    saveLoadableStaticBreakable.DestroyFromLoading();
-                }
-            }
-
-            foreach (CustomSaveEntry saveEntry in saveFile.Entries)
-            {
-                GameObject prefab = saveLoadManager.GetPrefab(saveEntry.SavableObjectID);
-                ISaveLoadableObject saveLoadableObject2;
-
-                GameObject obj = UnityEngine.Object.Instantiate<GameObject>(prefab, saveEntry.Position.ToVector3(), Quaternion.Euler(saveEntry.Rotation.ToVector3()));
-                NetworkedObjectRegistry.Register<GameObject>(obj, saveEntry.GUID);
-                if (prefab != null && obj.TryGetComponent<ISaveLoadableObject>(out saveLoadableObject2))
-                {
-                    MinerHooks.allowOverride = true;
-                    saveLoadableObject2.LoadFromSave(saveEntry.CustomDataJson);
-                    MinerHooks.allowOverride = false;
-                }
-            }
-
-            foreach (CustomOrePieceEntry orePieceEntry in saveFile.OrePieces)
-            {
-                OrePiece orePiecePrefab = saveLoadManager.GetOrePiecePrefab(orePieceEntry.ResourceType, orePieceEntry.PieceType, orePieceEntry.PolishedPercent > 0.95f);
-                if (orePiecePrefab != null)
-                {
-                    OrePiece orePiece = UnityEngine.Object.Instantiate<OrePiece>(orePiecePrefab, orePieceEntry.Position.ToVector3(), Quaternion.Euler(orePieceEntry.Rotation.ToVector3()));
-                    orePiece.UseRandomScale = false;
-                    orePiece.transform.localScale = orePieceEntry.Scale.ToVector3();
-                    orePiece.UseRandomMesh = false;
-                    orePiece.MeshID = orePieceEntry.MeshID;
-                    if (orePiece.PolishedPercent != 1f)
-                    {
-                        orePiece.PolishedPercent = orePieceEntry.PolishedPercent;
-                    }
-
-                    NetworkedObjectRegistry.Register<OrePiece>(orePiece, orePieceEntry.GUID);
-                }
-            }
-
-            List<ISaveLoadableWorldEvent> list = UnityEngine.Object.FindObjectsOfType<MonoBehaviour>().OfType<ISaveLoadableWorldEvent>().ToList<ISaveLoadableWorldEvent>();
-            foreach (CustomWorldEventEntry worldEventEntry in saveFile.WorldEventEntries)
-            {
-                foreach (ISaveLoadableWorldEvent saveLoadableWorldEvent in list)
-                {
-                    if (saveLoadableWorldEvent.GetWorldEventID() == worldEventEntry.WorldEventID)
-                    {
-                        saveLoadableWorldEvent.LoadFromSave(worldEventEntry.CustomDataJson);
-                    }
-                }
-            }
-
-            Singleton<EconomyManager>.Instance.ShopPurchases = saveFile.ShopPurchases;
-            Singleton<EconomyManager>.Instance.SetMoney(saveFile.Money);
-            LoadQuestsFromSaveFile(Singleton<QuestManager>.Instance, saveFile);
         }
 
         public static void LoadQuestsFromSaveFile(QuestManager _instance, CustomSaveFile saveFile)

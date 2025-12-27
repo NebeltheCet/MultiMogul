@@ -9,5 +9,7 @@ namespace MultiMogul.MultiMogul.Utilities.CustomSave
         public int WorldEventID;
 
         public string CustomDataJson;
+
+        public string GUID;
     }
 }

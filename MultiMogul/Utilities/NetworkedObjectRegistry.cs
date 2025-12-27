@@ -12,6 +12,22 @@ namespace MultiMogul.MultiMogul.Utilities
     {
         private static List<GameObject> networkedObjects = new List<GameObject>();
 
+        public static int GetGUIDHashFromInstance<T>(T objectInstance) where T : UnityEngine.Object
+        {
+            if (objectInstance == null)
+            {
+                throw new Exception("GetGUIDHashFromInstance called with null object instance!");
+            }
+
+            NetworkedObject networkedObject = objectInstance.GameObject().GetComponent<NetworkedObject>();
+            if (networkedObject == null)
+            {
+                throw new Exception("GetGUIDHashFromInstance called on object without NetworkedObject component!");
+            }
+
+            return networkedObject.guidHash;
+        }
+
         public static void Register<T>(T unityObject, string guid = "") where T : UnityEngine.Object
         {
             if (unityObject == null)
@@ -23,6 +39,16 @@ namespace MultiMogul.MultiMogul.Utilities
 
             if (gameObject.TryGetComponent<NetworkedObject>(out var component))
             {
+                if (string.IsNullOrEmpty(guid) && string.IsNullOrEmpty(component.guid))
+                {
+                    component.guid = Guid.NewGuid().ToString();
+                }
+                else
+                {
+                    component.guid = guid;
+                }
+
+                component.guidHash = component.guid.GetHashCode();
                 return; // component already exists for this object
             }
 
@@ -38,32 +64,29 @@ namespace MultiMogul.MultiMogul.Utilities
             networkedObjects.Add(gameObject.GameObject());
         }
 
-
-        // this is awful :c
-        public static GameObject GetFromPosition(Vector3 position)
+        public static GameObject GetFromGUID(int guidHash)
         {
             if (networkedObjects.Count <= 0)
                 return null;
 
-            float closestDistance = float.MaxValue;
-            GameObject closestObject = null;
+            GameObject guidObject = null;
             foreach (var obj in networkedObjects)
             {
                 if (obj == null)
                     continue;
 
-                if (obj.transform == null)
+                NetworkedObject networkedObject = obj.GetComponent<NetworkedObject>();
+                if (networkedObject == null)
                     continue;
 
-                float distance = Vector3.Distance(obj.transform.position, position);
-                if (distance >= closestDistance)
+                if (networkedObject.guidHash != guidHash)
                     continue;
 
-                closestDistance = distance;
-                closestObject = obj;
+                guidObject = obj;
+                break;
             }
 
-            return closestObject;
+            return guidObject;
         }
 
         public static void RemoveAllMatching(GameObject other)

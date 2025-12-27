@@ -18,7 +18,8 @@ namespace MultiMogul.MultiMogul.Utilities.CustomSave
         public SerializableVector3 PlayerRotation = Vector3.zero;
 
         public List<CustomSaveEntry> Entries = new List<CustomSaveEntry>();
-        public List<SerializableVector3> DestroyedStaticBreakablePositions = new List<SerializableVector3>();
+        public List<CustomStaticBreakableEntry> DestroyedStaticBreakablePositions = new List<CustomStaticBreakableEntry>();
+        public List<CustomStaticBreakableEntry> ExistingStaticBreakablePositions = new List<CustomStaticBreakableEntry>();
 
         public List<QuestID> CompletedQuestsIDs = new List<QuestID>();
         [Obsolete]

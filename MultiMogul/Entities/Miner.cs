@@ -13,7 +13,7 @@ namespace MultiMogul.MultiMogul.Entities
 {
     public class Miner
     {
-        public static void SendOreSpawn(Vector3 objectPositionn, float randomValue)
+        public static void SendOreSpawn(int objectId, float randomValue)
         {
             foreach (var kvp in MultiMogulBase.serverManager.connectedClients)
             {
@@ -21,7 +21,7 @@ namespace MultiMogul.MultiMogul.Entities
                 {
                     packet.Write("CL_OnMinerOreSpawn");
 
-                    packet.Write(objectPositionn);
+                    packet.Write(objectId);
                     packet.Write(randomValue);
 
                     packet.Send(kvp.Key, SendType.Reliable);
@@ -30,14 +30,14 @@ namespace MultiMogul.MultiMogul.Entities
         }
 
         // this function will be called by clients to send an update to the server
-        public static void SendUpdate(Vector3 objectPosition, bool value)
+        public static void SendUpdate(int objectId, bool value)
         {
             if (!ClientManager.IsHost()) {
                 using (Packet packet = new Packet(PacketType.OnRPCMessage))
                 {
                     packet.Write("SV_OnMinerToggled");
 
-                    packet.Write(objectPosition);
+                    packet.Write(objectId);
                     packet.Write(value);
 
                     packet.Send(ClientManager.Instance.connection.Connection, SendType.Reliable);
@@ -51,7 +51,7 @@ namespace MultiMogul.MultiMogul.Entities
                     {
                         packet.Write("CL_OnMinerToggled");
 
-                        packet.Write(objectPosition);
+                        packet.Write(objectId);
                         packet.Write(value);
 
                         packet.Send(kvp.Key, SendType.Reliable);
@@ -69,10 +69,10 @@ namespace MultiMogul.MultiMogul.Entities
                 return;
             }
 
-            Vector3 objectPosition = receivedPacket.ReadVector3();
+            int objectId = receivedPacket.ReadInt32();
             float randomValue = receivedPacket.ReadSingle();
 
-            GameObject minerObject = NetworkedObjectRegistry.GetFromPosition(objectPosition);
+            GameObject minerObject = NetworkedObjectRegistry.GetFromGUID(objectId);
             if (minerObject != null)
             {
                 AutoMiner minerComponent = minerObject.GetComponent<AutoMiner>();
@@ -88,10 +88,10 @@ namespace MultiMogul.MultiMogul.Entities
         [Networkable("SV_OnMinerToggled")]
         static public void OnMinerToggledServer(Connection connection, Packet receivedPacket)
         {
-            Vector3 objectPosition = receivedPacket.ReadVector3();
+            int objectId = receivedPacket.ReadInt32();
             bool value = receivedPacket.ReadBool();
 
-            GameObject minerObject = NetworkedObjectRegistry.GetFromPosition(objectPosition);
+            GameObject minerObject = NetworkedObjectRegistry.GetFromGUID(objectId);
             if (minerObject != null)
             {
                 AutoMiner minerComponent = minerObject.GetComponent<AutoMiner>();
@@ -112,7 +112,7 @@ namespace MultiMogul.MultiMogul.Entities
                 {
                     packet.Write("CL_OnMinerToggled");
 
-                    packet.Write(objectPosition);
+                    packet.Write(objectId);
                     packet.Write(value);
 
                     packet.Send(kvp.Key, SendType.Reliable);
@@ -125,10 +125,10 @@ namespace MultiMogul.MultiMogul.Entities
         [Networkable("CL_OnMinerToggled")]
         static public void OnMinerToggled(Packet receivedPacket)
         {
-            Vector3 objectPosition = receivedPacket.ReadVector3();
+            int objectId = receivedPacket.ReadInt32();
             bool value = receivedPacket.ReadBool();
 
-            GameObject minerObject = NetworkedObjectRegistry.GetFromPosition(objectPosition);
+            GameObject minerObject = NetworkedObjectRegistry.GetFromGUID(objectId);
             if (minerObject != null)
             {
                 AutoMiner minerComponent = minerObject.GetComponent<AutoMiner>();
