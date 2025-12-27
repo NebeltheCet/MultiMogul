@@ -15,6 +15,11 @@ namespace MultiMogul.MultiMogul.Hooks
     [HarmonyPatch]
     public class PlayerControllerHooks
     {
+        private static float lastSentTime = 0f;
+
+        private const int updateRate = 30;
+        private const float intervalPerTick = (1f / updateRate);
+
         [HarmonyPostfix]
         [HarmonyPatch(typeof(PlayerController), "Update")]
         public static void PostUpdate(PlayerController __instance)
@@ -27,6 +32,9 @@ namespace MultiMogul.MultiMogul.Hooks
                 GameObject grabbedObject = grabJoint.connectedBody.gameObject;
                 OrePiece orePiece = grabbedObject?.GetComponent<OrePiece>();
                 if (orePiece == null)
+                    return;
+
+                if ((Time.realtimeSinceStartup - lastSentTime) < intervalPerTick)
                     return;
 
                 if (!ClientManager.IsHost())
@@ -62,6 +70,8 @@ namespace MultiMogul.MultiMogul.Hooks
 
                     //Debug.Log($"sent \"CL_OnOreGrabbed\" to all clients[{NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance.HeldObject)}]");
                 }
+
+                lastSentTime = Time.realtimeSinceStartup;
             }
         }
 
