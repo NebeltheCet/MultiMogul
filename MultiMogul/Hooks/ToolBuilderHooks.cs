@@ -40,7 +40,7 @@ namespace MultiMogul.MultiMogul.Hooks
             if (Singleton<BuildingManager>.Instance.CanPlaceObject(closestGridPosition, (BuildingObject)_objectPrefab.GetValue(__instance), __instance.CurrentRotation, ((BuildingObject)_objectPrefab.GetValue(__instance)).RequiresFlatGround, ((BuildingObject)_objectPrefab.GetValue(__instance)).PlacementNodeRequirement, out buildingPlacementNode, __instance) == CanPlaceBuilding.Valid)
             {
                 BuildingObject attachedBuildingObject = UnityEngine.Object.Instantiate<BuildingObject>((BuildingObject)_objectPrefab.GetValue(__instance), Singleton<BuildingManager>.Instance.GhostObjectTransform.position, Singleton<BuildingManager>.Instance.GhostObjectTransform.rotation);
-                //NetworkedObjectRegistry.Register<GameObject>(attachedBuildingObject.gameObject);
+                NetworkedObjectRegistry.Register<BuildingObject>(attachedBuildingObject);
 
                 // NETWORKING
                 if (!ClientManager.IsHost())
@@ -49,6 +49,7 @@ namespace MultiMogul.MultiMogul.Hooks
                     {
                         packet.Write("SV_OnBuildingPlaced");
 
+                        packet.Write(NetworkedObjectRegistry.GetGUIDFromInstance(attachedBuildingObject));
                         packet.Write((int)attachedBuildingObject.GetSavableObjectID());
                         packet.Write(attachedBuildingObject.GetPosition());
                         packet.Write(attachedBuildingObject.GetRotation());
@@ -65,6 +66,7 @@ namespace MultiMogul.MultiMogul.Hooks
                         {
                             packet.Write("CL_OnBuildingPlaced");
 
+                            packet.Write(NetworkedObjectRegistry.GetGUIDFromInstance(attachedBuildingObject));
                             packet.Write((int)attachedBuildingObject.GetSavableObjectID());
                             packet.Write(attachedBuildingObject.GetPosition());
                             packet.Write(attachedBuildingObject.GetRotation());
@@ -98,6 +100,7 @@ namespace MultiMogul.MultiMogul.Hooks
         {
             SavingLoadingManager saveLoadManager = SavingLoadingManager.Instance;
 
+            string objectGUID = receivedPacket.ReadString();
             SavableObjectID savableObjectID = (SavableObjectID)receivedPacket.ReadInt32();
             Vector3 position = (Vector3)receivedPacket.ReadVector3();
             Vector3 rotation = (Vector3)receivedPacket.ReadVector3();
@@ -106,7 +109,7 @@ namespace MultiMogul.MultiMogul.Hooks
             GameObject prefab = saveLoadManager.GetPrefab(savableObjectID);
             ISaveLoadableObject saveLoadableObject2;
             GameObject obj = UnityEngine.Object.Instantiate<GameObject>(prefab, position, Quaternion.Euler(rotation));
-            //NetworkedObjectRegistry.Register<GameObject>(obj);
+            NetworkedObjectRegistry.Register<GameObject>(obj, objectGUID);
             if (prefab != null && obj.TryGetComponent<ISaveLoadableObject>(out saveLoadableObject2))
             {
                 MinerHooks.allowOverride = true;
@@ -123,6 +126,7 @@ namespace MultiMogul.MultiMogul.Hooks
                 {
                     packet.Write("CL_OnBuildingPlaced");
 
+                    packet.Write(objectGUID);
                     packet.Write((int)savableObjectID);
                     packet.Write(position);
                     packet.Write(rotation);
@@ -140,6 +144,7 @@ namespace MultiMogul.MultiMogul.Hooks
         {
             SavingLoadingManager saveLoadManager = SavingLoadingManager.Instance;
 
+            string objectGUID = receivedPacket.ReadString();
             SavableObjectID savableObjectID = (SavableObjectID)receivedPacket.ReadInt32();
             Vector3 position = (Vector3)receivedPacket.ReadVector3();
             Vector3 rotation = (Vector3)receivedPacket.ReadVector3();
@@ -148,7 +153,7 @@ namespace MultiMogul.MultiMogul.Hooks
             GameObject prefab = saveLoadManager.GetPrefab(savableObjectID);
             ISaveLoadableObject saveLoadableObject2;
             GameObject obj = UnityEngine.Object.Instantiate<GameObject>(prefab, position, Quaternion.Euler(rotation));
-            //NetworkedObjectRegistry.Register<GameObject>(obj);
+            NetworkedObjectRegistry.Register<GameObject>(obj, objectGUID);
             if (prefab != null && obj.TryGetComponent<ISaveLoadableObject>(out saveLoadableObject2))
             {
                 MinerHooks.allowOverride = true;

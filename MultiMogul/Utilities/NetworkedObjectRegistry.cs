@@ -28,6 +28,22 @@ namespace MultiMogul.MultiMogul.Utilities
             return networkedObject.guidHash;
         }
 
+        public static string GetGUIDFromInstance<T>(T objectInstance) where T : UnityEngine.Object
+        {
+            if (objectInstance == null)
+            {
+                throw new Exception("GetGUIDHashFromInstance called with null object instance!");
+            }
+
+            NetworkedObject networkedObject = objectInstance.GameObject().GetComponent<NetworkedObject>();
+            if (networkedObject == null)
+            {
+                throw new Exception("GetGUIDHashFromInstance called on object without NetworkedObject component!");
+            }
+
+            return networkedObject.guid;
+        }
+
         public static void Register<T>(T unityObject, string guid = "") where T : UnityEngine.Object
         {
             if (unityObject == null)

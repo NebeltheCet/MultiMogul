@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -44,26 +45,26 @@ namespace MultiMogul.MultiMogul.Hooks
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(BuildingObject), "TryAddToInventory")]
-        public static bool PreTryAddToInventory(BuildingObject __instance)
+        public static bool PreTryAddToInventory(BuildingObject __instance, ref bool __result)
         {
             if (__instance.Definition == null)
             {
                 Debug.LogWarning("Tried to pickup Crate with missing Building Definition!");
+                __result = false;
                 return false;
             }
+
             ToolBuilder toolBuilder = UnityEngine.Object.Instantiate<ToolBuilder>(Singleton<BuildingManager>.Instance.BuildingToolPrefab);
             toolBuilder.Definition = __instance.Definition;
             toolBuilder.Setup();
+
             if (UnityEngine.Object.FindObjectOfType<PlayerInventory>().TryAddToInventory(toolBuilder, -1))
             {
-                //UnityEngine.Object.Destroy(__instance.gameObject, 0f);
-
                 if (!ClientManager.IsHost())
                 {
                     using (Packet packet = new Packet(PacketType.OnRPCMessage))
                     {
                         packet.Write("SV_DestroyObject");
-
                         packet.Write(NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance));
 
                         packet.Send(ClientManager.Instance.connection.Connection, SendType.Reliable);
@@ -76,9 +77,6 @@ namespace MultiMogul.MultiMogul.Hooks
                         using (Packet packet = new Packet(PacketType.OnRPCMessage))
                         {
                             packet.Write("CL_DestroyObject");
-
-                            Debug.Log("Writing GUID Hash: " + NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance));
-
                             packet.Write(NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance));
 
                             packet.Send(kvp.Key, SendType.Reliable);
@@ -87,17 +85,38 @@ namespace MultiMogul.MultiMogul.Hooks
                 }
 
                 // network destroy
-
+                UnityEngine.Object.Destroy(__instance.gameObject, 0f);
+                __result = true;
                 return false;
             }
 
-            return true;
+            __result = false;
+            return false;
         }
 
 
         [Networkable("SV_DestroyObject")]
         public static void DestroyObjectServer(Connection connection, Packet receivedPacket)
         {
+            int guidHash = receivedPacket.ReadInt32();
+
+            GameObject gameObject = NetworkedObjectRegistry.GetFromGUID(guidHash);
+            foreach (var kvp in MultiMogulBase.serverManager.connectedClients)
+            {
+                if (kvp.Key == connection)
+                    continue;
+
+                using (Packet packet = new Packet(PacketType.OnRPCMessage))
+                {
+                    packet.Write("CL_DestroyObject");
+                    packet.Write(guidHash);
+
+                    packet.Send(kvp.Key, SendType.Reliable);
+                }
+            }
+
+            UnityEngine.Object.Destroy(gameObject, 0f);
+
             receivedPacket.Dispose();
         }
 
@@ -109,7 +128,6 @@ namespace MultiMogul.MultiMogul.Hooks
             Debug.Log("Received request to destroy object with GUID Hash: " + guidHash);
 
             GameObject gameObject = NetworkedObjectRegistry.GetFromGUID(guidHash);
-
             UnityEngine.Object.Destroy(gameObject, 0f);
 
             receivedPacket.Dispose();
