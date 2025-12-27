@@ -70,6 +70,14 @@ namespace MultiMogul.MultiMogul
             this.writer.Write(value.y);
             this.writer.Write(value.z);
         }
+
+        public void Write(Vector3Int value)
+        {
+            this.writer.Write(value.x);
+            this.writer.Write(value.y);
+            this.writer.Write(value.z);
+        }
+
         public void Write(Quaternion value)
         {
             this.writer.Write(value.x);
@@ -110,6 +118,16 @@ namespace MultiMogul.MultiMogul
 
             return new Vector3(x, y, z);
         }
+
+        public Vector3Int ReadVector3Int()
+        {
+            int x = this.reader.ReadInt32();
+            int y = this.reader.ReadInt32();
+            int z = this.reader.ReadInt32();
+
+            return new Vector3Int(x, y, z);
+        }
+
         public Quaternion ReadQuaternion()
         {
             float x = this.reader.ReadSingle();
