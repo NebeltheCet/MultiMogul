@@ -9,9 +9,11 @@ namespace MultiMogul.MultiMogul.Entities
         [Networkable("CL_OnWorldReceive")]
         public static void OnWorldReceive(Packet receivedPacket)
         {
-            Debug.Log("received world data from server");
+            string jsonData = receivedPacket.ReadString();
 
-            SaveManager.LoadGameplaySceneThenLoadSave(receivedPacket.ReadString());
+            Debug.Log($"received world data from server[size: {jsonData.Length}]");
+
+            SaveManager.LoadGameplaySceneThenLoadSave(jsonData);
             if (AutoSaveManager.Instance != null)
             {
                 AutoSaveManager.Instance.AutoSaveEnabled = false;

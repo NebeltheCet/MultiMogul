@@ -5,6 +5,7 @@ namespace MultiMogul.MultiMogul.Utilities
 {
     public class NetworkedObject : MonoBehaviour
     {
-        public int networkID = -1;
+        public string guid = "";
+        public int guidHash = 0;
     }
 }

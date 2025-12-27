@@ -12,19 +12,32 @@ namespace MultiMogul.MultiMogul.Utilities
     {
         private static List<GameObject> networkedObjects = new List<GameObject>();
 
-        public static void Register<T>(T gameObject) where T : UnityEngine.Object
+        public static void Register<T>(T unityObject, string guid = "") where T : UnityEngine.Object
         {
-            if (gameObject == null)
+            if (unityObject == null)
             {
-                Debug.LogWarning("AddNetworkComponent called with null GameObject!");
-                return;
+                throw new Exception("AddNetworkComponent called with null GameObject!");
+            }
+
+            GameObject gameObject = unityObject.GameObject();
+
+            if (gameObject.TryGetComponent<NetworkedObject>(out var component))
+            {
+                return; // component already exists for this object
             }
 
             NetworkedObject networkedObject = gameObject.AddComponent<NetworkedObject>();
-            networkedObject.networkID = networkedObjects.Count;
+            networkedObject.guid = guid;
+            if (string.IsNullOrEmpty(networkedObject.guid))
+            {
+                networkedObject.guid = Guid.NewGuid().ToString();
+            }
+
+            networkedObject.guidHash = networkedObject.guid.GetHashCode();
 
             networkedObjects.Add(gameObject.GameObject());
         }
+
 
         // this is awful :c
         public static GameObject GetFromPosition(Vector3 position)

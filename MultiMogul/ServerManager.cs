@@ -392,10 +392,12 @@ public class ServerManager : MonoBehaviour
         connectedClient.steamId = steamId;
         using (Packet packet = new Packet(PacketType.OnRPCMessage))
         {
+            string saveGameData = SaveManager.SaveGame();
+
             packet.Write("CL_OnWorldReceive");
-            packet.Write(SaveManager.GetSaveFile());
+            packet.Write(saveGameData);
             packet.Send(connection, SendType.Reliable);
-            Debug.Log("sending save file to client");
+            Debug.Log($"sending save file to client[size: {saveGameData.Length}]");
         }
 
         Player player = new Player();
