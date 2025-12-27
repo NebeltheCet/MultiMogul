@@ -121,7 +121,7 @@ namespace MultiMogul.MultiMogul.Entities
             }
         }
 
-        public static void OnGUI()
+        public static void DrawNametags() // this has to be cleaned up at some point
         {
             foreach (var player in activePlayerList)
             {
@@ -161,48 +161,63 @@ namespace MultiMogul.MultiMogul.Entities
             }
         }
 
+        public static void OnGUI()
+        {
+            DrawNametags();
+        }
+
+        public static void SendServerTick()
+        {
+            int newSeed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
+            foreach (var player in activePlayerList)
+            {
+                using (Packet packet = new Packet(PacketType.OnRPCMessage))
+                {
+                    packet.Write("CL_OnReceivePlayerTick");
+
+                    packet.Write(player.steamId);
+                    packet.Write(player.position);
+                    packet.Write(player.rotation);
+                    packet.Write(player.scale);
+                    packet.Write(newSeed);
+
+                    foreach (var kvp in ServerManager.Instance.connectedClients)
+                    {
+                        if (player.steamId == kvp.Value.steamId)
+                            continue;
+
+                        packet.Send(kvp.Key, SendType.Unreliable);
+                    }
+                }
+            }
+
+            UnityEngine.Random.InitState(newSeed);
+        }
+
+        public static void SendServerEconomy()
+        {
+            if (EconomyManager.Instance == null)
+                return;
+
+            using (Packet packet = new Packet(PacketType.OnRPCMessage))
+            {
+                packet.Write("CL_OnReceiveState");
+
+                packet.Write(EconomyManager.Instance.Money);
+                foreach (var kvp in ServerManager.Instance.connectedClients)
+                {
+                    packet.Send(kvp.Key, SendType.Unreliable);
+                }
+            }
+        }
+
         static public void OnServerUpdate()
         {
             if ((Time.realtimeSinceStartup - lastServerTickTime) > intervalPerTick)
             {
-                int newSeed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
-                foreach (var player in activePlayerList)
-                {
-                    using (Packet packet = new Packet(PacketType.OnRPCMessage))
-                    {
-                        packet.Write("CL_OnReceivePlayerTick");
+                SendServerTick();
+                SendServerEconomy();
 
-                        packet.Write(player.steamId);
-                        packet.Write(player.position);
-                        packet.Write(player.rotation);
-                        packet.Write(player.scale);
-                        packet.Write(newSeed);
-
-                        foreach (var kvp in ServerManager.Instance.connectedClients)
-                        {
-                            if (player.steamId == kvp.Value.steamId)
-                                continue;
-
-                            packet.Send(kvp.Key, SendType.Unreliable);
-                        }
-                    }
-                }
-
-                if (EconomyManager.Instance != null)
-                {
-                    using (Packet packet = new Packet(PacketType.OnRPCMessage))
-                    {
-                        packet.Write("CL_OnReceiveState");
-
-                        packet.Write(EconomyManager.Instance.Money);
-                        foreach (var kvp in ServerManager.Instance.connectedClients)
-                        {
-                            packet.Send(kvp.Key, SendType.Unreliable);
-                        }
-                    }
-                }
-
-                UnityEngine.Random.InitState(newSeed);
                 lastServerTickTime = Time.realtimeSinceStartup;
             }
         }
@@ -297,7 +312,8 @@ namespace MultiMogul.MultiMogul.Entities
             {
                 bool shouldRemove = !handledPlayers.Contains(p.steamId);
 
-                if (shouldRemove) {
+                if (shouldRemove)
+                {
                     p.OnRemoved();
                     Debug.Log($"removed player[{p.steamId}]");
                 }
