@@ -13,7 +13,7 @@ namespace MultiMogul.MultiMogul.Entities
 {
     public class Miner
     {
-        public static void SendOreSpawn(int objectId, float randomValue)
+        public static void SendOreSpawn(int objectId, string objectGUID, float randomValue)
         {
             foreach (var kvp in MultiMogulBase.serverManager.connectedClients)
             {
@@ -22,6 +22,7 @@ namespace MultiMogul.MultiMogul.Entities
                     packet.Write("CL_OnMinerOreSpawn");
 
                     packet.Write(objectId);
+                    packet.Write(objectGUID);
                     packet.Write(randomValue);
 
                     packet.Send(kvp.Key, SendType.Reliable);
@@ -70,6 +71,7 @@ namespace MultiMogul.MultiMogul.Entities
             }
 
             int objectId = receivedPacket.ReadInt32();
+            string objectGUID = receivedPacket.ReadString();
             float randomValue = receivedPacket.ReadSingle();
 
             GameObject minerObject = NetworkedObjectRegistry.GetFromGUID(objectId);
@@ -78,7 +80,7 @@ namespace MultiMogul.MultiMogul.Entities
                 AutoMiner minerComponent = minerObject.GetComponent<AutoMiner>();
                 if (minerComponent != null)
                 {
-                    MinerHooks.TrySpawnOre(minerComponent, randomValue);
+                    MinerHooks.TrySpawnOre(minerComponent, randomValue, objectGUID);
                 }
             }
 

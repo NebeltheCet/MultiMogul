@@ -14,6 +14,9 @@ Magnet Tool
 World Events
 register guid's for ingame instantiated objects and network them
 
+Bonus TODO:
+network the hitting of objects(specifically the physics)
+
 BUGS:
 quest ui jitters when receiving a quest update
 certain objects are not affected by grabbing(ex. Carts and the hat)

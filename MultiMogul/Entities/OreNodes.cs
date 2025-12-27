@@ -123,6 +123,16 @@ namespace MultiMogul.MultiMogul.Entities
                 }
 
                 OrePiece orePiece = UnityEngine.Object.Instantiate<OrePiece>(orePrefab, vector, Quaternion.identity);
+                if (receivedPacket == null)
+                {
+                    NetworkedObjectRegistry.Register<OrePiece>(orePiece);
+                    packet.Write(NetworkedObjectRegistry.GetGUIDFromInstance(orePiece));
+                }
+                else
+                {
+                    NetworkedObjectRegistry.Register<OrePiece>(orePiece, receivedPacket.ReadString());
+                }
+
                 if (orePiece != null)
                 {
                     Rigidbody component = orePiece.GetComponent<Rigidbody>();

@@ -118,7 +118,7 @@ namespace MultiMogul.MultiMogul.Hooks
             return (OrePiece)prefabField.GetValue(weightedOreList[weightedOreList.Count - 1]);
         }
 
-        public static void TrySpawnOre(AutoMiner __instance, float value)
+        public static void TrySpawnOre(AutoMiner __instance, float value, string oreGUID = "")
         {
             OrePiece createdOre = null;
             float oreRandomValue = float.NaN;
@@ -149,6 +149,14 @@ namespace MultiMogul.MultiMogul.Hooks
                 if (orePiece != null)
                 {
                     createdOre = UnityEngine.Object.Instantiate<OrePiece>(orePiece, __instance.OreSpawnPoint.position, __instance.OreSpawnPoint.rotation);
+                    if (!string.IsNullOrEmpty(oreGUID))
+                    {
+                        NetworkedObjectRegistry.Register<OrePiece>(createdOre, oreGUID);
+                    }
+                    else
+                    {
+                        NetworkedObjectRegistry.Register<OrePiece>(createdOre);
+                    }
                 }
             }
 
@@ -156,10 +164,8 @@ namespace MultiMogul.MultiMogul.Hooks
             {
                 if (ClientManager.IsHost())
                 {
-                    Miner.SendOreSpawn(NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance), oreRandomValue);
+                    Miner.SendOreSpawn(NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance), NetworkedObjectRegistry.GetGUIDFromInstance(createdOre), oreRandomValue);
                 }
-
-                //NetworkedObjectRegistry.Register<GameObject>(createdOre.gameObject);
             }
         }
 
