@@ -211,6 +211,9 @@ namespace MultiMogul.MultiMogul.Utilities
 
             FieldInfo _destroyedStaticBreakablePositions = saveLoadManager.GetType().GetField("_destroyedStaticBreakablePositions", BindingFlags.NonPublic | BindingFlags.Instance);
             PropertyInfo IsCurrentlyLoadingGame = typeof(SavingLoadingManager).GetProperty("IsCurrentlyLoadingGame", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo ClearCart = typeof(ComputerShopUI).GetMethod("ClearCart", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            ClearCart.Invoke(UIManager.Instance?.ComputerShopUI, null);
 
             IsCurrentlyLoadingGame.SetValue(saveLoadManager, true);
             if (!isJsonString)
