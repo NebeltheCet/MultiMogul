@@ -30,10 +30,6 @@ namespace MultiMogul.MultiMogul.Hooks
             if (grabJoint != null && grabJoint.connectedBody != null)
             {
                 GameObject grabbedObject = grabJoint.connectedBody.gameObject;
-                OrePiece orePiece = grabbedObject?.GetComponent<OrePiece>();
-                if (orePiece == null)
-                    return;
-
                 if ((Time.realtimeSinceStartup - lastSentTime) < intervalPerTick)
                     return;
 
