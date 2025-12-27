@@ -43,7 +43,7 @@ namespace MultiMogul.MultiMogul.Utilities
                 {
                     component.guid = Guid.NewGuid().ToString();
                 }
-                else
+                else if (!string.IsNullOrEmpty(guid))
                 {
                     component.guid = guid;
                 }
@@ -84,6 +84,11 @@ namespace MultiMogul.MultiMogul.Utilities
 
                 guidObject = obj;
                 break;
+            }
+
+            if (guidObject == null)
+            {
+                throw new Exception($"GetFromGUID could not find object with GUID hash {guidHash}!");
             }
 
             return guidObject;

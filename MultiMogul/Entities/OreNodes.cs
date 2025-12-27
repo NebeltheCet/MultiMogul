@@ -142,7 +142,7 @@ namespace MultiMogul.MultiMogul.Entities
                         }
                     }
 
-                    NetworkedObjectRegistry.Register<OrePiece>(orePiece);
+                    //NetworkedObjectRegistry.Register<OrePiece>(orePiece);
                 }
             }
 

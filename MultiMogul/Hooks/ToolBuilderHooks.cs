@@ -40,7 +40,7 @@ namespace MultiMogul.MultiMogul.Hooks
             if (Singleton<BuildingManager>.Instance.CanPlaceObject(closestGridPosition, (BuildingObject)_objectPrefab.GetValue(__instance), __instance.CurrentRotation, ((BuildingObject)_objectPrefab.GetValue(__instance)).RequiresFlatGround, ((BuildingObject)_objectPrefab.GetValue(__instance)).PlacementNodeRequirement, out buildingPlacementNode, __instance) == CanPlaceBuilding.Valid)
             {
                 BuildingObject attachedBuildingObject = UnityEngine.Object.Instantiate<BuildingObject>((BuildingObject)_objectPrefab.GetValue(__instance), Singleton<BuildingManager>.Instance.GhostObjectTransform.position, Singleton<BuildingManager>.Instance.GhostObjectTransform.rotation);
-                NetworkedObjectRegistry.Register<GameObject>(attachedBuildingObject.gameObject);
+                //NetworkedObjectRegistry.Register<GameObject>(attachedBuildingObject.gameObject);
 
                 // NETWORKING
                 if (!ClientManager.IsHost())
@@ -106,7 +106,7 @@ namespace MultiMogul.MultiMogul.Hooks
             GameObject prefab = saveLoadManager.GetPrefab(savableObjectID);
             ISaveLoadableObject saveLoadableObject2;
             GameObject obj = UnityEngine.Object.Instantiate<GameObject>(prefab, position, Quaternion.Euler(rotation));
-            NetworkedObjectRegistry.Register<GameObject>(obj);
+            //NetworkedObjectRegistry.Register<GameObject>(obj);
             if (prefab != null && obj.TryGetComponent<ISaveLoadableObject>(out saveLoadableObject2))
             {
                 MinerHooks.allowOverride = true;
@@ -148,7 +148,7 @@ namespace MultiMogul.MultiMogul.Hooks
             GameObject prefab = saveLoadManager.GetPrefab(savableObjectID);
             ISaveLoadableObject saveLoadableObject2;
             GameObject obj = UnityEngine.Object.Instantiate<GameObject>(prefab, position, Quaternion.Euler(rotation));
-            NetworkedObjectRegistry.Register<GameObject>(obj);
+            //NetworkedObjectRegistry.Register<GameObject>(obj);
             if (prefab != null && obj.TryGetComponent<ISaveLoadableObject>(out saveLoadableObject2))
             {
                 MinerHooks.allowOverride = true;

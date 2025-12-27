@@ -159,7 +159,7 @@ namespace MultiMogul.MultiMogul.Hooks
                     Miner.SendOreSpawn(NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance), oreRandomValue);
                 }
 
-                NetworkedObjectRegistry.Register<GameObject>(createdOre.gameObject);
+                //NetworkedObjectRegistry.Register<GameObject>(createdOre.gameObject);
             }
         }
 
