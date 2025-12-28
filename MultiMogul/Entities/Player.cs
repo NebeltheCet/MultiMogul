@@ -22,6 +22,7 @@ namespace MultiMogul.MultiMogul.Entities
 
         public bool isLocalPlayer;
         public bool wasCreated;
+        public bool finishedLoadingSave;
         public GameObject playerObject;
 
         public static List<Player> activePlayerList = new List<Player>();
@@ -85,12 +86,6 @@ namespace MultiMogul.MultiMogul.Entities
                         this.playerObject = playerObject;
                         this.playerObject.name = $"Player_{this.steamId}";
                     }
-
-                    CustomPlayerEntry customPlayerEntry = SaveManager.lastPlayerEntries.Find(p => p.SteamID == this.steamId);
-                    if (customPlayerEntry != null)
-                    {
-                        UnityEngine.Object.FindObjectOfType<PlayerController>().TeleportPlayer(customPlayerEntry.Position.ToVector3(), customPlayerEntry.Rotation.ToVector3());
-                    }
                 }
 
                 Friend friend = new Friend(this.steamId);
@@ -101,6 +96,26 @@ namespace MultiMogul.MultiMogul.Entities
 
             if (!this.wasCreated)
                 return;
+
+            if (SaveManager.IsLoadingGame() && !this.finishedLoadingSave)
+            {
+                CustomPlayerEntry customPlayerEntry = SaveManager.lastPlayerEntries.Find(p => p.SteamID == this.steamId);
+                if (customPlayerEntry != null)
+                {
+                    UnityEngine.Object.FindObjectOfType<PlayerController>().TeleportPlayer(customPlayerEntry.Position.ToVector3(), customPlayerEntry.Rotation.ToVector3());
+                }
+                else
+                {
+                    StartingElevator startingElevator = UnityEngine.Object.FindFirstObjectByType<StartingElevator>();
+
+                    if (startingElevator != null)
+                    {
+                        UnityEngine.Object.FindObjectOfType<PlayerController>().TeleportPlayer(startingElevator.PlayerTeleportPosition.position, Vector3.zero);
+                    }
+                }
+
+                this.finishedLoadingSave = true;
+            }
 
             if (!this.isLocalPlayer)
             {
