@@ -151,8 +151,6 @@ namespace MultiMogul.MultiMogul.Entities
                             packet.Write(component.angularVelocity);
                         }
                     }
-
-                    //NetworkedObjectRegistry.Register<OrePiece>(orePiece);
                 }
             }
 

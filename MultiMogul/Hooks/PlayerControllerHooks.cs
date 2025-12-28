@@ -16,11 +16,6 @@ namespace MultiMogul.MultiMogul.Hooks
     [HarmonyPatch]
     public class PlayerControllerHooks
     {
-        private static float lastSentTime = 0f;
-
-        private const int updateRate = 30;
-        private const float intervalPerTick = (1f / updateRate);
-
         [HarmonyPostfix]
         [HarmonyPatch(typeof(PlayerController), "Update")]
         public static void PostUpdate(PlayerController __instance)

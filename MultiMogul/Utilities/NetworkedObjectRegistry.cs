@@ -106,7 +106,8 @@ namespace MultiMogul.MultiMogul.Utilities
 
             if (guidObject == null)
             {
-                throw new Exception($"GetFromGUID could not find object with GUID hash {guidHash}!");
+                //throw new Exception($"GetFromGUID could not find object with GUID hash {guidHash}!");
+                return null;
             }
 
             return guidObject;
