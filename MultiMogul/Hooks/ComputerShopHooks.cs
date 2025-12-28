@@ -109,7 +109,7 @@ namespace MultiMogul.MultiMogul.Hooks
 
                         packet.Send(kvp.Key, SendType.Reliable);
 
-                        Debug.Log($"Sent add to cart network message for item ID {(int)item.GetSavableObjectID()} x{quantity} to client.");
+                        UnityEngine.Debug.Log($"Sent add to cart network message for item ID {(int)item.GetSavableObjectID()} x{quantity} to client.");
                     }
                 }
             }
