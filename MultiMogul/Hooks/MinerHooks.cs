@@ -27,7 +27,7 @@ namespace MultiMogul.MultiMogul.Hooks
         [HarmonyPatch(typeof(AutoMiner), "TurnOn")]
         public static void PostTurnOn(AutoMiner __instance)
         {
-            if (allowOverride)
+            if (allowOverride || SaveManager.IsLoadingGame())
                 return;
 
             if (__instance == null)
@@ -43,7 +43,7 @@ namespace MultiMogul.MultiMogul.Hooks
         [HarmonyPatch(typeof(AutoMiner), "TurnOff")]
         public static void PostTurnOff(AutoMiner __instance)
         {
-            if (allowOverride)
+            if (allowOverride || SaveManager.IsLoadingGame())
                 return;
 
             if (__instance == null)

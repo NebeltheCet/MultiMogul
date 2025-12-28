@@ -142,6 +142,13 @@ namespace MultiMogul.MultiMogul.Utilities
             return text;
         }
 
+        public static bool IsLoadingGame()
+        {
+            PropertyInfo IsCurrentlyLoadingGame = typeof(SavingLoadingManager).GetProperty("IsCurrentlyLoadingGame", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+            return (bool)IsCurrentlyLoadingGame.GetValue(SavingLoadingManager.Instance);
+        }
+
         public static void LoadGame(SavingLoadingManager saveLoadManager, string fullFilePath, bool isJsonString = false)
         {
             if (fullFilePath.Length <= 0)

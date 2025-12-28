@@ -17,7 +17,7 @@ namespace MultiMogul.MultiMogul.Hooks {
         [HarmonyPrefix]
         [HarmonyPatch(typeof(OreNode), "TakeDamage")]
         public static void PreTakeDamage(OreNode __instance, float damage, Vector3 position) {
-            if (allowOverride)
+            if (allowOverride || SaveManager.IsLoadingGame())
                 return;
 
             if (!ClientManager.IsHost()) {

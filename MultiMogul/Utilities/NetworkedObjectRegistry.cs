@@ -14,15 +14,16 @@ namespace MultiMogul.MultiMogul.Utilities
 
         public static int GetGUIDHashFromInstance<T>(T objectInstance) where T : UnityEngine.Object
         {
+            GameObject gameObject = objectInstance.GameObject();
             if (objectInstance == null)
             {
                 throw new Exception("GetGUIDHashFromInstance called with null object instance!");
             }
 
-            NetworkedObject networkedObject = objectInstance.GameObject().GetComponent<NetworkedObject>();
+            NetworkedObject networkedObject = gameObject.GetComponent<NetworkedObject>();
             if (networkedObject == null)
             {
-                throw new Exception("GetGUIDHashFromInstance called on object without NetworkedObject component!");
+                throw new Exception($"GetGUIDHashFromInstance called on object({gameObject.name}) without NetworkedObject component!");
             }
 
             return networkedObject.guidHash;
@@ -30,15 +31,16 @@ namespace MultiMogul.MultiMogul.Utilities
 
         public static string GetGUIDFromInstance<T>(T objectInstance) where T : UnityEngine.Object
         {
+            GameObject gameObject = objectInstance.GameObject();
             if (objectInstance == null)
             {
                 throw new Exception("GetGUIDHashFromInstance called with null object instance!");
             }
 
-            NetworkedObject networkedObject = objectInstance.GameObject().GetComponent<NetworkedObject>();
+            NetworkedObject networkedObject = gameObject.GetComponent<NetworkedObject>();
             if (networkedObject == null)
             {
-                throw new Exception("GetGUIDHashFromInstance called on object without NetworkedObject component!");
+                throw new Exception($"GetGUIDHashFromInstance called on object({gameObject.name}) without NetworkedObject component!");
             }
 
             return networkedObject.guid;
