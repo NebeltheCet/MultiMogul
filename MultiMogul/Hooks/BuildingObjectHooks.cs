@@ -20,54 +20,14 @@ namespace MultiMogul.MultiMogul.Hooks
         [HarmonyPatch(typeof(BuildingObject), "Pack")]
         public static bool PrePack(BuildingObject __instance)
         {
-            if (__instance.IsGhost)
-            {
-                return false;
-            }
-            Vector3 position = __instance.BuildingCrateSpawnPoint ? __instance.BuildingCrateSpawnPoint.position : (__instance.transform.position + new Vector3(0f, 0.25f, 0f));
-            Quaternion rotation = __instance.BuildingCrateSpawnPoint ? __instance.BuildingCrateSpawnPoint.rotation : Quaternion.identity;
-            BuildingCrate buildingCrate = UnityEngine.Object.Instantiate<BuildingCrate>(__instance.Definition.PackedPrefab ? __instance.Definition.PackedPrefab : Singleton<BuildingManager>.Instance.BuildingCratePrefab, position, rotation);
-            buildingCrate.Definition = __instance.Definition;
-            Rigidbody component = buildingCrate.GetComponent<Rigidbody>();
-
-            if (component != null)
-            {
-                float num = 0.5f;
-                Vector3 linearVelocity = new Vector3(UnityEngine.Random.Range(-num, num), UnityEngine.Random.Range(0f, num) * 2f, UnityEngine.Random.Range(-num, num));
-                component.linearVelocity = linearVelocity;
-                float num2 = 1f;
-                Vector3 angularVelocity = new Vector3(UnityEngine.Random.Range(-num2, num2), UnityEngine.Random.Range(-num2, num2), UnityEngine.Random.Range(-num2, num2));
-                component.angularVelocity = angularVelocity;
-            }
-
             if (!ClientManager.IsHost())
             {
-                using (Packet packet = new Packet(PacketType.OnRPCMessage))
-                {
-                    packet.Write("SV_CrateObject");
-                    packet.Write(NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance));
-
-                    packet.Send(ClientManager.Instance.connection.Connection, SendType.Reliable);
-                }
+                Building.Pack(__instance, ClientManager.Instance.connection.Connection);
             }
             else
             {
-                foreach (var kvp in MultiMogulBase.serverManager.connectedClients)
-                {
-                    using (Packet packet = new Packet(PacketType.OnRPCMessage))
-                    {
-                        packet.Write("CL_CrateObject");
-                        packet.Write(NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance));
-
-                        packet.Send(kvp.Key, SendType.Reliable);
-                    }
-                }
+                Building.Pack(__instance);
             }
-
-            UnityEngine.Object.Destroy(__instance.gameObject, 0f);
-
-
-            //network destroy
 
             return false;
         }
@@ -127,31 +87,17 @@ namespace MultiMogul.MultiMogul.Hooks
         public static void CrateObjectServer(Connection connection, Packet receivedPacket)
         {
             int guidHash = receivedPacket.ReadInt32();
-            GameObject gameObject = NetworkedObjectRegistry.GetFromGUID(guidHash);
-            BuildingObject __instance = gameObject.GetComponent<BuildingObject>();
-            
-            __instance.Pack();
 
+            GameObject gameObject = NetworkedObjectRegistry.GetFromGUID(guidHash);
+            BuildingObject _instance = gameObject.GetComponent<BuildingObject>();
+
+            Building.Pack(_instance, connection, receivedPacket);
             if (PlayerControllerHooks.lastInteractedObjectHash == guidHash)
             {
                 Player.GetLocalPlayer()?.playerObject?.GetComponent<PlayerController>()?.InteractionWheelUI?.CloseWheel();
             }
 
             UnityEngine.Object.Destroy(gameObject, 0f);
-
-            foreach (var kvp in MultiMogulBase.serverManager.connectedClients)
-            {
-                if (kvp.Key == connection)
-                    continue;
-
-                using (Packet packet = new Packet(PacketType.OnRPCMessage))
-                {
-                    packet.Write("CL_CrateObject");
-                    packet.Write(guidHash);
-
-                    packet.Send(kvp.Key, SendType.Reliable);
-                }
-            }
 
             receivedPacket.Dispose();
         }
@@ -161,9 +107,9 @@ namespace MultiMogul.MultiMogul.Hooks
         {
             int guidHash = receivedPacket.ReadInt32();
             GameObject gameObject = NetworkedObjectRegistry.GetFromGUID(guidHash);
-            BuildingObject __instance = gameObject.GetComponent<BuildingObject>();
+            BuildingObject _instance = gameObject.GetComponent<BuildingObject>();
 
-            __instance.Pack();
+            Building.Pack(_instance, ClientManager.Instance.connection.Connection, receivedPacket);
 
             if (PlayerControllerHooks.lastInteractedObjectHash == guidHash)
             {
@@ -171,7 +117,6 @@ namespace MultiMogul.MultiMogul.Hooks
             }
 
             UnityEngine.Object.Destroy(gameObject, 0f);
-
             receivedPacket.Dispose();
         }
 
