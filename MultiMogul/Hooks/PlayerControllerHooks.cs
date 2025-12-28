@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using MultiMogul.MultiMogul.Entities;
 using MultiMogul.MultiMogul.Utilities;
 using Steamworks.Data;
 using System;
@@ -29,63 +30,27 @@ namespace MultiMogul.MultiMogul.Hooks
 
             if (grabJoint != null && grabJoint.connectedBody != null)
             {
-                GameObject grabbedObject = grabJoint.connectedBody.gameObject;
-                if ((Time.realtimeSinceStartup - lastSentTime) < intervalPerTick)
-                    return;
+                GameObject grabbedObject = __instance.HeldObject;
 
-                if (!ClientManager.IsHost())
-                {
-                    using (Packet packet = new Packet(PacketType.OnRPCMessage))
-                    {
-                        packet.Write("SV_OnOreGrabbed");
-
-                        packet.Write(NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance.HeldObject));
-                        packet.Write(__instance.HeldObject.transform.position);
-                        packet.Write(__instance.HeldObject.GetComponent<Rigidbody>().linearVelocity);
-
-                        packet.Send(ClientManager.Instance.connection.Connection, SendType.Reliable);
-                    }
-
-                    //Debug.Log($"sent \"CL_OnOreGrabbed\" to the server[{NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance.HeldObject)}]");
-                }
-                else
-                {
-                    foreach (var kvp in MultiMogulBase.serverManager.connectedClients)
-                    {
-                        using (Packet packet = new Packet(PacketType.OnRPCMessage))
-                        {
-                            packet.Write("CL_OnOreGrabbed");
-
-                            packet.Write(NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance.HeldObject));
-                            packet.Write(__instance.HeldObject.transform.position);
-                            packet.Write(__instance.HeldObject.GetComponent<Rigidbody>().linearVelocity);
-
-                            packet.Send(kvp.Key, SendType.Reliable);
-                        }
-                    }
-
-                    //Debug.Log($"sent \"CL_OnOreGrabbed\" to all clients[{NetworkedObjectRegistry.GetGUIDHashFromInstance(__instance.HeldObject)}]");
-                }
-
-                lastSentTime = Time.realtimeSinceStartup;
+                Grabbables.SendGrabbableUpdate(grabbedObject);
             }
         }
 
         [Networkable("SV_OnOreGrabbed")]
         public static void OnOreGrabbedServer(Connection connection, Packet receivedPacket)
         {
-            int objectId = receivedPacket.ReadInt32();
-            Vector3 newPosition = receivedPacket.ReadVector3();
-            Vector3 newVelocity = receivedPacket.ReadVector3();
+            int listSize = receivedPacket.ReadInt32();
+            bool isList = listSize != -1;
 
-            UnityEngine.GameObject orePiece = NetworkedObjectRegistry.GetFromGUID(objectId);
-            orePiece.transform.position = newPosition;
-            orePiece.GetComponent<Rigidbody>().linearVelocity = newVelocity;
-
-            foreach (var kvp in MultiMogulBase.serverManager.connectedClients)
+            if (!isList)
             {
-                if (kvp.Key == connection)
-                    continue;
+                int objectId = receivedPacket.ReadInt32();
+                Vector3 newPosition = receivedPacket.ReadVector3();
+                Vector3 newVelocity = receivedPacket.ReadVector3();
+
+                UnityEngine.GameObject orePiece = NetworkedObjectRegistry.GetFromGUID(objectId);
+                orePiece.transform.position = newPosition;
+                orePiece.GetComponent<Rigidbody>().linearVelocity = newVelocity;
 
                 using (Packet packet = new Packet(PacketType.OnRPCMessage))
                 {
@@ -95,7 +60,44 @@ namespace MultiMogul.MultiMogul.Hooks
                     packet.Write(newPosition);
                     packet.Write(newVelocity);
 
-                    packet.Send(kvp.Key, SendType.Reliable);
+                    foreach (var kvp in MultiMogulBase.serverManager.connectedClients)
+                    {
+                        if (kvp.Key == connection)
+                            continue;
+
+                        packet.Send(kvp.Key, SendType.Reliable);
+                    }
+                }
+            }
+            else
+            {
+                using (Packet packet = new Packet(PacketType.OnRPCMessage))
+                {
+                    packet.Write("CL_OnOreGrabbed");
+
+                    packet.Write(listSize);
+                    for (int index = 0; index < listSize; index++)
+                    {
+                        int objectId = receivedPacket.ReadInt32();
+                        Vector3 newPosition = receivedPacket.ReadVector3();
+                        Vector3 newVelocity = receivedPacket.ReadVector3();
+
+                        UnityEngine.GameObject orePiece = NetworkedObjectRegistry.GetFromGUID(objectId);
+                        orePiece.transform.position = newPosition;
+                        orePiece.GetComponent<Rigidbody>().linearVelocity = newVelocity;
+
+                        packet.Write(objectId);
+                        packet.Write(newPosition);
+                        packet.Write(newVelocity);
+                    }
+
+                    foreach (var kvp in MultiMogulBase.serverManager.connectedClients)
+                    {
+                        if (kvp.Key == connection)
+                            continue;
+                        
+                        packet.Send(kvp.Key, SendType.Reliable);
+                    }
                 }
             }
 
@@ -107,15 +109,34 @@ namespace MultiMogul.MultiMogul.Hooks
         [Networkable("CL_OnOreGrabbed")]
         public static void OnOreGrabbed(Packet receivedPacket)
         {
-            int objectId = receivedPacket.ReadInt32();
-            Vector3 newPosition = receivedPacket.ReadVector3();
-            Vector3 newVelocity = receivedPacket.ReadVector3();
+            int listSize = receivedPacket.ReadInt32();
+            bool isList = listSize != -1;
 
             //Debug.Log($"received \"CL_OnOreGrabbed\" from server[{objectId}]");
 
-            UnityEngine.GameObject orePiece = NetworkedObjectRegistry.GetFromGUID(objectId);
-            orePiece.transform.position = newPosition;
-            orePiece.GetComponent<Rigidbody>().linearVelocity = newVelocity;
+            if (!isList)
+            {
+                int objectId = receivedPacket.ReadInt32();
+                Vector3 newPosition = receivedPacket.ReadVector3();
+                Vector3 newVelocity = receivedPacket.ReadVector3();
+
+                UnityEngine.GameObject orePiece = NetworkedObjectRegistry.GetFromGUID(objectId);
+                orePiece.transform.position = newPosition;
+                orePiece.GetComponent<Rigidbody>().linearVelocity = newVelocity;
+            }
+            else
+            {
+                for (int index = 0; index < listSize; index++)
+                {
+                    int objectId = receivedPacket.ReadInt32();
+                    Vector3 newPosition = receivedPacket.ReadVector3();
+                    Vector3 newVelocity = receivedPacket.ReadVector3();
+
+                    UnityEngine.GameObject orePiece = NetworkedObjectRegistry.GetFromGUID(objectId);
+                    orePiece.transform.position = newPosition;
+                    orePiece.GetComponent<Rigidbody>().linearVelocity = newVelocity;
+                }
+            }
 
             receivedPacket.Dispose();
         }
