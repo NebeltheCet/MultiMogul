@@ -9,16 +9,17 @@ namespace MultiMogul;
 /*
 TODO:
 
+keep track of separate inventories & positions per player
 Dropping of Items
 register guid's for ingame instantiated objects and network them
 
 Bonus TODO:
-network the hitting of objects(specifically the physics)
 certain objects are not affected by grabbing(ex. Carts and the hat), network them.
 
 BUGS:
 quest ui jitters when receiving a quest update
 pickup quests dont get updated when the client does them
+older save files are broken on load, implement alternative save version for multiplayer and let it convert the old save files to our own structure
 */
 
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
