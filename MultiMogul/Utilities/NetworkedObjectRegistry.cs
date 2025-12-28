@@ -17,13 +17,15 @@ namespace MultiMogul.MultiMogul.Utilities
             GameObject gameObject = objectInstance.GameObject();
             if (objectInstance == null)
             {
-                throw new Exception("GetGUIDHashFromInstance called with null object instance!");
+                Debug.LogWarning("GetGUIDHashFromInstance called with null object instance!");
+                return -1;
             }
 
             NetworkedObject networkedObject = gameObject.GetComponent<NetworkedObject>();
             if (networkedObject == null)
             {
-                throw new Exception($"GetGUIDHashFromInstance called on object({gameObject.name}) without NetworkedObject component!");
+                Debug.LogWarning($"GetGUIDHashFromInstance called on object({gameObject.name}) without NetworkedObject component!");
+                return -1;
             }
 
             return networkedObject.guidHash;

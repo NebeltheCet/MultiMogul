@@ -153,6 +153,8 @@ namespace MultiMogul.MultiMogul.Hooks
             if (Physics.Raycast(__instance.PlayerCamera.transform.position, __instance.PlayerCamera.transform.forward, out raycastHit, (float)_interactRange.GetValue(__instance), __instance.InteractLayerMask))
             {
                 lastInteractedObjectHash = NetworkedObjectRegistry.GetGUIDHashFromInstance(raycastHit.collider.transform.root.gameObject);
+                if (lastInteractedObjectHash == -1)
+                    return true;
 
                 __instance.InteractionWheelUI.ClearInteractionWheel();
                 List<IInteractable> list = new List<IInteractable>();
