@@ -9,7 +9,7 @@ namespace MultiMogul;
 /*
 TODO:
 
-keep track of separate inventories & positions per player
+keep track of separate inventories per player
 Dropping of Items
 register guid's for ingame instantiated objects and network them
 
