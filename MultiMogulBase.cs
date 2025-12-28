@@ -10,7 +10,6 @@ namespace MultiMogul;
 TODO:
 
 Dropping of Items
-World Events
 register guid's for ingame instantiated objects and network them
 
 Bonus TODO:
