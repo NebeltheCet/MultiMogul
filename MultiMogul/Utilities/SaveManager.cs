@@ -2,6 +2,7 @@
 using MultiMogul.MultiMogul.Entities;
 using MultiMogul.MultiMogul.Hooks;
 using MultiMogul.MultiMogul.Utilities.CustomSave;
+using Steamworks;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -18,6 +19,10 @@ namespace MultiMogul.MultiMogul.Utilities
 {
     public class SaveManager
     {
+        public const int multiplayerBaseSaveVersion = 100;
+        public const int multiplayerSaveVersion = multiplayerBaseSaveVersion + 1;
+        public static List<CustomPlayerEntry> lastPlayerEntries = new List<CustomPlayerEntry>();
+
         public static string SaveGame(string saveFileName = "", bool shouldTakeScreenshot = true)
         {
             SavingLoadingManager saveLoadManager = SavingLoadingManager.Instance;
@@ -34,7 +39,7 @@ namespace MultiMogul.MultiMogul.Utilities
             }
 
             CustomSaveFile saveFile = new CustomSaveFile();
-            saveFile.SaveVersion = 3;
+            saveFile.SaveVersion = multiplayerSaveVersion;
             saveFile.GameVersion = Singleton<VersionManager>.Instance.VersionNumber;
             saveFile.SaveTimestamp = DateTime.Now.ToString("o");
             saveFile.Money = Singleton<EconomyManager>.Instance.Money;
@@ -128,9 +133,11 @@ namespace MultiMogul.MultiMogul.Utilities
             saveFile.CompletedQuestsIDs = Singleton<QuestManager>.Instance.GetCompletedQuestIDs();
             saveFile.ActiveQuests = Singleton<QuestManager>.Instance.GetActiveQuestSaveEntries();
 
-            PlayerController playerController = UnityEngine.Object.FindObjectOfType<PlayerController>();
-            saveFile.PlayerPosition = playerController.transform.position;
-            saveFile.PlayerRotation = playerController.transform.rotation.eulerAngles;
+            //PlayerController playerController = UnityEngine.Object.FindObjectOfType<PlayerController>();
+            //saveFile.PlayerPosition = playerController.transform.position;
+            //saveFile.PlayerRotation = playerController.transform.rotation.eulerAngles;
+
+            saveFile.PlayerEntries = lastPlayerEntries;
 
             string text = Newtonsoft.Json.JsonConvert.SerializeObject(saveFile, Newtonsoft.Json.Formatting.Indented);
             if (saveFileName.Count() > 0)
@@ -300,7 +307,23 @@ namespace MultiMogul.MultiMogul.Utilities
             LoadQuestsFromSaveFile(Singleton<QuestManager>.Instance, saveFile);
 
             UnityEngine.Object.FindObjectOfType<PlayerInventory>().ClearInventory();
-            UnityEngine.Object.FindObjectOfType<PlayerController>().TeleportPlayer(saveFile.PlayerPosition.ToVector3(), saveFile.PlayerRotation.ToVector3());
+            if (saveFile.SaveVersion < multiplayerBaseSaveVersion)
+            {
+                UnityEngine.Object.FindObjectOfType<PlayerController>().TeleportPlayer(saveFile.PlayerPosition.ToVector3(), saveFile.PlayerRotation.ToVector3());
+
+                lastPlayerEntries.Add(new CustomPlayerEntry
+                {
+                    Position = saveFile.PlayerPosition,
+                    Rotation = saveFile.PlayerRotation,
+
+                    SteamID = SteamClient.SteamId
+                });
+            }
+            else
+            {
+                lastPlayerEntries = saveFile.PlayerEntries;
+            }
+
             if (Singleton<UIManager>.Instance != null)
             {
                 Singleton<UIManager>.Instance.PauseMenu.OnResumePressed();

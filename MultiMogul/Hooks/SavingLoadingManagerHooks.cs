@@ -1,4 +1,4 @@
-﻿﻿using HarmonyLib;
+﻿using HarmonyLib;
 using MultiMogul.MultiMogul.Utilities;
 using System;
 using System.Collections.Generic;
@@ -34,6 +34,19 @@ namespace MultiMogul.MultiMogul.Hooks
 
             MultiMogulBase.serverManager.StartServer();
             return false;
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(SavingLoadingManager), nameof(SavingLoadingManager.IsSaveFileCompatible))]
+        public static void PostIsSaveFileCompatible(SavingLoadingManager __instance, int version, ref bool __result)
+        {
+            if (version < SaveManager.multiplayerBaseSaveVersion)
+            {
+                __result = false;
+                return;
+            }
+
+            __result = true;
         }
     }
 }

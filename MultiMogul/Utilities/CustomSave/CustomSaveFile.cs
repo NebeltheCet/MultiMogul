@@ -14,8 +14,14 @@ namespace MultiMogul.MultiMogul.Utilities.CustomSave
         public string SaveTimestamp = "Unknown Time";
 
         public float Money;
+
+        [Obsolete]
         public SerializableVector3 PlayerPosition = Vector3.zero;
+
+        [Obsolete]
         public SerializableVector3 PlayerRotation = Vector3.zero;
+
+        public List<CustomPlayerEntry> PlayerEntries = new List<CustomPlayerEntry>();
 
         public List<CustomSaveEntry> Entries = new List<CustomSaveEntry>();
         public List<CustomStaticBreakableEntry> DestroyedStaticBreakablePositions = new List<CustomStaticBreakableEntry>();

@@ -85,6 +85,12 @@ namespace MultiMogul.MultiMogul.Entities
                         this.playerObject = playerObject;
                         this.playerObject.name = $"Player_{this.steamId}";
                     }
+
+                    CustomPlayerEntry customPlayerEntry = SaveManager.lastPlayerEntries.Find(p => p.SteamID == this.steamId);
+                    if (customPlayerEntry != null)
+                    {
+                        UnityEngine.Object.FindObjectOfType<PlayerController>().TeleportPlayer(customPlayerEntry.Position.ToVector3(), customPlayerEntry.Rotation.ToVector3());
+                    }
                 }
 
                 Friend friend = new Friend(this.steamId);
@@ -196,6 +202,22 @@ namespace MultiMogul.MultiMogul.Entities
 
                         packet.Send(kvp.Key, SendType.Unreliable);
                     }
+                }
+
+                CustomPlayerEntry customPlayerEntry = SaveManager.lastPlayerEntries.Find(p => p.SteamID == player.steamId);
+                if (customPlayerEntry != null)
+                {
+                    customPlayerEntry.Position = player.position;
+                    customPlayerEntry.Rotation = player.rotation.eulerAngles;
+                }
+                else
+                {
+                    SaveManager.lastPlayerEntries.Add(new CustomPlayerEntry
+                    {
+                        Position = player.position,
+                        Rotation = player.rotation.eulerAngles,
+                        SteamID = player.steamId
+                    });
                 }
             }
 
