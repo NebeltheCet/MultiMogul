@@ -136,5 +136,44 @@ namespace MultiMogul.MultiMogul.Hooks
             receivedPacket.Dispose();
         }
 
+        public static int lastInteractedObjectHash = 0;
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(PlayerController), "TryInteract")]
+        public static bool PreTryInteract(PlayerController __instance)
+        {
+            FieldInfo _grabJoint = typeof(PlayerController).GetField("_grabJoint", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo _interactRange = typeof(PlayerController).GetField("_interactRange", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            if (Singleton<UIManager>.Instance.IsInAnyMenu() || __instance.HeldObject != null || _grabJoint.GetValue(__instance) != null)
+            {
+                return false;
+            }
+            RaycastHit raycastHit;
+            if (Physics.Raycast(__instance.PlayerCamera.transform.position, __instance.PlayerCamera.transform.forward, out raycastHit, (float)_interactRange.GetValue(__instance), __instance.InteractLayerMask))
+            {
+                lastInteractedObjectHash = NetworkedObjectRegistry.GetGUIDHashFromInstance(raycastHit.collider.transform.root.gameObject);
+
+                __instance.InteractionWheelUI.ClearInteractionWheel();
+                List<IInteractable> list = new List<IInteractable>();
+                list.AddRange(raycastHit.collider.GetComponentsInParent<IInteractable>());
+                if (list.Count == 1 && !list[0].ShouldUseInteractionWheel())
+                {
+                    list[0].Interact(list[0].GetInteractions().FirstOrDefault<Interaction>());
+                    return false;
+                }
+                if (list.Count > 0)
+                {
+                    __instance.InteractionWheelUI.gameObject.SetActive(true);
+                    foreach (IInteractable interactable in list)
+                    {
+
+                        __instance.InteractionWheelUI.PopulateInteractionWheel(interactable);
+                    }
+                }
+            }
+
+            return false;
+        }
     }
 }
