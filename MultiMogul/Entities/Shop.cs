@@ -4,6 +4,7 @@ using Steamworks.Ugc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -168,6 +169,10 @@ namespace MultiMogul.MultiMogul.Entities
         {
             SetUpShop();
 
+            float money = receivedPacket.ReadSingle();
+
+            Singleton<EconomyManager>.Instance.SetMoney(money);
+
             ComputerShopHooks.allowOverride = true;
             UIManager.Instance?.ComputerShopUI?.PurchaseCart();
             ComputerShopHooks.allowOverride = false;
@@ -180,6 +185,7 @@ namespace MultiMogul.MultiMogul.Entities
                 using (Packet packet = new Packet(PacketType.OnRPCMessage))
                 {
                     packet.Write("CL_ShopOnPurchase");
+                    packet.Write(money);
                     packet.Send(kvp.Key, SendType.Reliable);
                 }
             }
@@ -191,6 +197,10 @@ namespace MultiMogul.MultiMogul.Entities
         public static void ShopOnPurchase(Packet receivedPacket)
         {
             SetUpShop();
+
+            float money = receivedPacket.ReadSingle();
+
+            Singleton<EconomyManager>.Instance.SetMoney(money);
 
             ComputerShopHooks.allowOverride = true;
             UIManager.Instance?.ComputerShopUI?.PurchaseCart();

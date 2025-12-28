@@ -5,6 +5,7 @@ using Steamworks.Data;
 using Steamworks.Ugc;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,9 +27,16 @@ namespace MultiMogul.MultiMogul.Hooks
             return false; // prevent it from clearing the cart on start
         }
 
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(ComputerShopUI), "PurchaseCart")]
+        public static void PrePurchaseCart(ComputerShopUI __instance, out float __state)
+        {
+            __state = Singleton<EconomyManager>.Instance.Money;
+        }
+
         [HarmonyPostfix]
         [HarmonyPatch(typeof(ComputerShopUI), "PurchaseCart")]
-        public static void PostPurchaseCart(ComputerShopUI __instance)
+        public static void PostPurchaseCart(ComputerShopUI __instance, float __state)
         {
             if (allowOverride)
                 return;
@@ -38,6 +46,7 @@ namespace MultiMogul.MultiMogul.Hooks
                 using (Packet packet = new Packet(PacketType.OnRPCMessage))
                 {
                     packet.Write("SV_ShopOnPurchase");
+                    packet.Write(__state);
 
                     packet.Send(ClientManager.Instance.connection.Connection, SendType.Reliable);
                 }
@@ -49,6 +58,7 @@ namespace MultiMogul.MultiMogul.Hooks
                     using (Packet packet = new Packet(PacketType.OnRPCMessage))
                     {
                         packet.Write("CL_ShopOnPurchase");
+                        packet.Write(__state);
 
                         packet.Send(kvp.Key, SendType.Reliable);
                     }
