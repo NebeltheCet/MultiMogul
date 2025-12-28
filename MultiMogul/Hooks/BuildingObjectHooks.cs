@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using MultiMogul.MultiMogul.Entities;
 using MultiMogul.MultiMogul.Utilities;
 using Steamworks.Data;
 using System;
@@ -142,6 +143,11 @@ namespace MultiMogul.MultiMogul.Hooks
                 }
             }
 
+            if (PlayerControllerHooks.lastInteractedObjectHash == guidHash)
+            {
+                Player.GetLocalPlayer()?.playerObject?.GetComponent<PlayerController>()?.InteractionWheelUI?.CloseWheel();
+            }
+
             UnityEngine.Object.Destroy(gameObject, 0f);
 
             receivedPacket.Dispose();
@@ -152,9 +158,13 @@ namespace MultiMogul.MultiMogul.Hooks
         {
             int guidHash = receivedPacket.ReadInt32();
 
-            Debug.Log("Received request to destroy object with GUID Hash: " + guidHash);
-
             GameObject gameObject = NetworkedObjectRegistry.GetFromGUID(guidHash);
+
+            if (PlayerControllerHooks.lastInteractedObjectHash == guidHash)
+            {
+                Player.GetLocalPlayer()?.playerObject?.GetComponent<PlayerController>()?.InteractionWheelUI?.CloseWheel();
+            }
+
             UnityEngine.Object.Destroy(gameObject, 0f);
 
             receivedPacket.Dispose();

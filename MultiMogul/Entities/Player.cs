@@ -35,6 +35,10 @@ namespace MultiMogul.MultiMogul.Entities
         private const int tickRate = 20;
         private const float intervalPerTick = (1f / tickRate);
 
+        public static Player GetLocalPlayer()
+        {
+            return Player.activePlayerList.Find(p => p.isLocalPlayer);
+        }
 
         private static void CreateObject()
         {
