@@ -25,8 +25,8 @@ namespace MultiMogul.MultiMogul.Hooks
             if ((bool)_isLowering.GetValue(__instance))
                 return;
 
-            string saveFile = SaveManager.SaveGame(SavingLoadingManager.Instance.ActiveSaveFileName, true);
-            SaveManager.LoadGame(SavingLoadingManager.Instance, saveFile, true);
+            SaveManager.SaveGame(SavingLoadingManager.Instance.ActiveSaveFileName, true);
+            SaveManager.LoadGame(SavingLoadingManager.Instance, SavingLoadingManager.GetFullSaveFilePath(SavingLoadingManager.Instance.ActiveSaveFileName, true));
 
             MultiMogulBase.serverManager.StartServer();
             SavingLoadingManager.Instance.SceneWasLoadedFromNewGame = false;
