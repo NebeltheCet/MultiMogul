@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using static UnityEngine.GridBrushBase;
 
 namespace MultiMogul.MultiMogul.Utilities
 {
@@ -247,16 +248,27 @@ namespace MultiMogul.MultiMogul.Utilities
             Debug.Log($"loading save entries[{saveFile.Entries.Count}]");
             foreach (CustomSaveEntry saveEntry in saveFile.Entries)
             {
+                if (saveEntry == null)
+                    continue;
+
                 GameObject prefab = saveLoadManager.GetPrefab(saveEntry.SavableObjectID);
                 ISaveLoadableObject saveLoadableObject2;
 
                 GameObject obj = UnityEngine.Object.Instantiate<GameObject>(prefab, saveEntry.Position.ToVector3(), Quaternion.Euler(saveEntry.Rotation.ToVector3()));
                 NetworkedObjectRegistry.Register<GameObject>(obj, saveEntry.GUID);
+
                 if (prefab != null && obj.TryGetComponent<ISaveLoadableObject>(out saveLoadableObject2))
                 {
-                    MinerHooks.allowOverride = true;
-                    saveLoadableObject2.LoadFromSave(saveEntry.CustomDataJson);
-                    MinerHooks.allowOverride = false;
+                    if ((!string.IsNullOrEmpty(saveEntry.CustomDataJson) && !saveEntry.CustomDataJson.Contains("Inventory\":true")) || ClientManager.IsHost())
+                    {
+                        MinerHooks.allowOverride = true;
+                        saveLoadableObject2.LoadFromSave(saveEntry.CustomDataJson);
+                        MinerHooks.allowOverride = false;
+                    }
+                    else if (!string.IsNullOrEmpty(saveEntry.CustomDataJson) && saveEntry.CustomDataJson.Contains("Inventory\":true"))
+                    {
+                        obj.SetActive(false);
+                    }
                 }
             }
 

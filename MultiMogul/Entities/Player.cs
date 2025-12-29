@@ -1,14 +1,20 @@
-﻿using MultiMogul.MultiMogul.Utilities;
+﻿using MultiMogul.MultiMogul.Hooks;
+using MultiMogul.MultiMogul.Utilities;
 using MultiMogul.MultiMogul.Utilities.CustomSave;
 using Steamworks;
 using Steamworks.Data;
+using Steamworks.Ugc;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
+using static UnityEngine.Rendering.PostProcessing.SubpixelMorphologicalAntialiasing;
 
 namespace MultiMogul.MultiMogul.Entities
 {
@@ -29,6 +35,7 @@ namespace MultiMogul.MultiMogul.Entities
         private static GameObject playerPrefab;
 
         private float lastTickTime = 0f;
+        private float lastInventoryTime = 0f;
         private static float lastServerTickTime = 0f; // this one is used for base data that can be sent frequently
         private static float lastServerTickTime2 = 0f; // this one is used for reliable data that needs to be sent less frequently
         private static int lastQuestHash = -1;
@@ -64,44 +71,144 @@ namespace MultiMogul.MultiMogul.Entities
             }
         }
 
-        public void OnUpdate()
+        private void CreatePlayer()
         {
-            CreateObject();
-            if (!this.wasCreated)
-            {
-                if (!this.isLocalPlayer)
-                {
-                    this.playerObject = UnityEngine.Object.Instantiate(playerPrefab, this.position, this.rotation);
-                    this.playerObject.name = $"Player_{this.steamId}";
-                    this.playerObject.transform.localScale = this.scale;
-                    this.playerObject.SetActive(true);
-
-                    UnityEngine.Object.DontDestroyOnLoad(this.playerObject);
-                }
-                else
-                {
-                    GameObject playerObject = UnityEngine.GameObject.Find("Player");
-                    if (playerObject != null)
-                    {
-                        this.playerObject = playerObject;
-                        this.playerObject.name = $"Player_{this.steamId}";
-                    }
-                }
-
-                Friend friend = new Friend(this.steamId);
-
-                this.playerName = friend.Name;
-                this.wasCreated = this.playerObject != null;
-            }
-
-            if (!this.wasCreated)
+            if (this.wasCreated)
                 return;
 
-            if (SaveManager.IsLoadingGame() && !this.finishedLoadingSave)
+            if (!this.isLocalPlayer)
+            {
+                this.playerObject = UnityEngine.Object.Instantiate(playerPrefab, this.position, this.rotation);
+                this.playerObject.name = $"Player_{this.steamId}";
+                this.playerObject.transform.localScale = this.scale;
+                this.playerObject.SetActive(true);
+
+                UnityEngine.Object.DontDestroyOnLoad(this.playerObject);
+            }
+            else
+            {
+                GameObject playerObject = UnityEngine.GameObject.Find("Player");
+                if (playerObject != null)
+                {
+                    this.playerObject = playerObject;
+                    this.playerObject.name = $"Player_{this.steamId}";
+                }
+            }
+
+            Friend friend = new Friend(this.steamId);
+
+            this.playerName = friend.Name;
+            this.wasCreated = this.playerObject != null;
+        }
+
+        private void SendPlayerTick()
+        {
+            if ((Time.realtimeSinceStartup - this.lastTickTime) < intervalPerTick)
+                return;
+
+            using (Packet packet = new Packet(PacketType.OnRPCMessage))
+            {
+                packet.Write("SV_OnReceivePlayerTick");
+
+                packet.Write(this.position);
+                packet.Write(this.rotation);
+                packet.Write(this.scale);
+
+                if (!ClientManager.IsHost())
+                {
+                    packet.Send(ClientManager.Instance.connection.Connection, SendType.Unreliable);
+                }
+            }
+
+            this.lastTickTime = Time.realtimeSinceStartup;
+        }
+
+        private void SendInventoryUpdate()
+        {
+            PlayerInventory inventory = UnityEngine.Object.FindFirstObjectByType<PlayerInventory>();
+            if (inventory == null)
+                return;
+
+            if ((Time.realtimeSinceStartup - this.lastInventoryTime) > (intervalPerTick * (tickRate / 2)) && !ClientManager.IsHost())
+            {
+                using (Packet packet = new Packet(PacketType.OnRPCMessage))
+                {
+                    packet.Write("SV_OnInventoryUpdate");
+                    packet.Write(inventory.Items.Count);
+                    foreach (var item in inventory.Items)
+                    {
+                        packet.Write(item != null);
+                        if (item == null)
+                            continue;
+
+                        int quantity = -1;
+                        int savableObjectId = (int)item.GetSavableObjectID();
+                        int toolBuilderObjectId = 0;
+                        if (item is ToolBuilder builderItem)
+                        {
+                            quantity = builderItem.Quantity;
+                            toolBuilderObjectId = (int)builderItem.Definition.BuildingPrefab.SavableObjectID;
+                        }
+
+                        packet.Write(savableObjectId);
+                        packet.Write(inventory.GetInventoryIndexForTool(item));
+                        packet.Write(quantity);
+                        packet.Write(toolBuilderObjectId);
+                    }
+
+                    packet.Send(ClientManager.Instance.connection.Connection, SendType.Reliable);
+                }
+
+                this.lastInventoryTime = Time.realtimeSinceStartup;
+            }
+
+            if (ClientManager.IsHost() && inventory != null)
             {
                 CustomPlayerEntry customPlayerEntry = SaveManager.lastPlayerEntries.Find(p => p.SteamID == this.steamId);
                 if (customPlayerEntry != null)
                 {
+                    customPlayerEntry.InventoryEntries.Clear();
+                    foreach (var item in inventory.Items)
+                    {
+                        if (item == null)
+                            continue;
+
+                        int quantity = -1;
+                        SavableObjectID savableObjectId = item.GetSavableObjectID();
+                        SavableObjectID toolBuilderObjectId = SavableObjectID.INVALID;
+                        if (item is ToolBuilder builderItem)
+                        {
+                            quantity = builderItem.Quantity;
+                            toolBuilderObjectId = builderItem.Definition.BuildingPrefab.SavableObjectID;
+                        }
+
+                        customPlayerEntry.InventoryEntries.Add(new CustomInventoryEntry
+                        {
+                            SavableObjectID = savableObjectId,
+                            InventorySlotIndex = inventory.GetInventoryIndexForTool(item),
+
+                            Quantity = quantity,
+                            BuildObjectID = toolBuilderObjectId
+                        });
+                    }
+                }
+            }
+        }
+
+        public void OnUpdate()
+        {
+            CreateObject();
+            this.CreatePlayer();
+            if (!this.wasCreated)
+                return;
+
+            if (!SaveManager.IsLoadingGame() && !this.finishedLoadingSave && this.isLocalPlayer)
+            {
+                CustomPlayerEntry customPlayerEntry = SaveManager.lastPlayerEntries.Find(p => p.SteamID == this.steamId);
+                if (customPlayerEntry != null)
+                {
+                    this.InitializeInventory(customPlayerEntry);
+
                     UnityEngine.Object.FindObjectOfType<PlayerController>().TeleportPlayer(customPlayerEntry.Position.ToVector3(), customPlayerEntry.Rotation.ToVector3());
                 }
                 else
@@ -129,23 +236,49 @@ namespace MultiMogul.MultiMogul.Entities
                 this.rotation = this.playerObject.transform.rotation;
                 this.scale = this.playerObject.transform.localScale;
 
-                if ((Time.realtimeSinceStartup - this.lastTickTime) > intervalPerTick)
+                this.SendPlayerTick();
+                this.SendInventoryUpdate();
+            }
+        }
+
+        public void InitializeInventory(CustomPlayerEntry customPlayerEntry)
+        {
+            if (ClientManager.IsHost())
+                return; // host items get processed by our save manager
+
+            foreach (var itemEntry in customPlayerEntry.InventoryEntries)
+            {
+                GameObject prefab = SavingLoadingManager.Instance.GetPrefab(itemEntry.SavableObjectID);
+                ISaveLoadableObject saveLoadableObject2;
+
+                GameObject obj = UnityEngine.Object.Instantiate<GameObject>(prefab, Vector3.zero, Quaternion.Euler(Vector3.zero));
+                if (prefab != null && obj.TryGetComponent<ISaveLoadableObject>(out saveLoadableObject2))
                 {
-                    using (Packet packet = new Packet(PacketType.OnRPCMessage))
+                    MethodInfo method = typeof(BaseHeldTool).GetMethod("WaitThenAddToInventory", BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (method == null)
+                        throw new MissingMethodException("WaitThenAddToInventory not found");
+
+                    if (itemEntry.Quantity != -1)
                     {
-                        packet.Write("SV_OnReceivePlayerTick");
-
-                        packet.Write(this.position);
-                        packet.Write(this.rotation);
-                        packet.Write(this.scale);
-
-                        if (!ClientManager.IsHost())
+                        ToolBuilder toolBuilder = obj.GetComponent<ToolBuilder>();
+                        if (toolBuilder != null)
                         {
-                            packet.Send(ClientManager.Instance.connection.Connection, SendType.Unreliable);
+                            toolBuilder.Definition = Singleton<SavingLoadingManager>.Instance.GetBuildingInventoryDefinition(itemEntry.BuildObjectID);
+                            toolBuilder.Quantity = itemEntry.Quantity;
+
+                            IEnumerator coroutine = (IEnumerator)method.Invoke(toolBuilder, [itemEntry.InventorySlotIndex]);
+                            toolBuilder.StartCoroutine(coroutine);
                         }
                     }
-
-                    this.lastTickTime = Time.realtimeSinceStartup;
+                    else
+                    {
+                        BaseHeldTool heldTool = obj.GetComponent<BaseHeldTool>();
+                        if (heldTool != null)
+                        {
+                            IEnumerator coroutine = (IEnumerator)method.Invoke(heldTool, [itemEntry.InventorySlotIndex]);
+                            heldTool.StartCoroutine(coroutine);
+                        }
+                    }
                 }
             }
         }
@@ -466,6 +599,52 @@ namespace MultiMogul.MultiMogul.Entities
             existingPlayer.scale = receivedPacket.ReadVector3();
 
             //Debug.LogWarning($"received server player tick for player {connectedClient.steamId}");
+
+            receivedPacket.Dispose();
+        }
+
+        [Networkable("SV_OnInventoryUpdate")]
+        public static void OnInventoryUpdateServer(Connection connection, Packet receivedPacket)
+        {
+            ConnectedClient connectedClient = MultiMogulBase.serverManager.connectedClients[connection];
+            if (connectedClient == null)
+            {
+                receivedPacket.Dispose();
+                return;
+            }
+
+            CustomPlayerEntry customPlayerEntry = SaveManager.lastPlayerEntries.Find(p => p.SteamID == connectedClient.steamId);
+            if (customPlayerEntry == null)
+            {
+                Debug.LogWarning($"failed to find CustomPlayerEntry for player with id[{connectedClient.steamId}]");
+
+                receivedPacket.Dispose();
+                return;
+            }
+
+            customPlayerEntry.InventoryEntries.Clear();
+
+            int itemAmount = receivedPacket.ReadInt32();
+            for (int itemIndex = 0; itemIndex < itemAmount; itemIndex++)
+            {
+                bool isValid = receivedPacket.ReadBool();
+                if (!isValid)
+                    continue;
+
+                SavableObjectID savableObjectID = (SavableObjectID)receivedPacket.ReadInt32();
+                int inventoryIndex = receivedPacket.ReadInt32();
+                int itemQuantity = receivedPacket.ReadInt32();
+                SavableObjectID toolBuilderObjectId = (SavableObjectID)receivedPacket.ReadInt32();
+
+                customPlayerEntry.InventoryEntries.Add(new CustomInventoryEntry
+                {
+                    SavableObjectID = savableObjectID,
+                    InventorySlotIndex = inventoryIndex,
+
+                    Quantity = itemQuantity,
+                    BuildObjectID = toolBuilderObjectId
+                });
+            }
 
             receivedPacket.Dispose();
         }
