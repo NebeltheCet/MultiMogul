@@ -44,8 +44,11 @@ namespace MultiMogul.MultiMogul.Hooks
                 Vector3 newVelocity = receivedPacket.ReadVector3();
 
                 UnityEngine.GameObject orePiece = NetworkedObjectRegistry.GetFromGUID(objectId);
-                orePiece.transform.position = newPosition;
-                orePiece.GetComponent<Rigidbody>().linearVelocity = newVelocity;
+                if (orePiece != null)
+                {
+                    orePiece.transform.position = newPosition;
+                    orePiece.GetComponent<Rigidbody>().linearVelocity = newVelocity;
+                }
 
                 using (Packet packet = new Packet(PacketType.OnRPCMessage))
                 {
@@ -78,8 +81,11 @@ namespace MultiMogul.MultiMogul.Hooks
                         Vector3 newVelocity = receivedPacket.ReadVector3();
 
                         UnityEngine.GameObject orePiece = NetworkedObjectRegistry.GetFromGUID(objectId);
-                        orePiece.transform.position = newPosition;
-                        orePiece.GetComponent<Rigidbody>().linearVelocity = newVelocity;
+                        if (orePiece != null)
+                        {
+                            orePiece.transform.position = newPosition;
+                            orePiece.GetComponent<Rigidbody>().linearVelocity = newVelocity;
+                        }
 
                         packet.Write(objectId);
                         packet.Write(newPosition);
