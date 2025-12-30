@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -31,24 +32,31 @@ internal class MMLog {
 		Logger = null;
 	}
 
-	public static void Log(string message, LogTypes logType = LogTypes.Default) {
+	public static void Log(string message, LogTypes logType = LogTypes.Default, [CallerMemberName] string caller = "") {
 		if ((logTypes & logType) == 0)
 			return;
 
-		Logger.Log(LogLevel.None, message);
+		Logger.Log(LogLevel.None, $"[{caller}]: {message}");
 	}
 
-	public static void LogWarning(string message, LogTypes logType = LogTypes.Default) {
+	public static void LogWarning(string message, LogTypes logType = LogTypes.Default, [CallerMemberName] string caller = "") {
 		if ((logTypes & logType) == 0)
 			return;
 
-		Logger.Log(LogLevel.Warning, message);
+		Logger.Log(LogLevel.Warning, $"[{caller}]: {message}");
 	}
 
-	public static void LogError(string message, LogTypes logType = LogTypes.Default) {
+	public static void LogError(string message, LogTypes logType = LogTypes.Default, [CallerMemberName] string caller = "") {
 		if ((logTypes & logType) == 0)
 			return;
 
-		Logger.Log(LogLevel.Error, message);
+		Logger.Log(LogLevel.Error, $"[{caller}]: {message}");
+	}
+
+	public static void LogException(string message, LogTypes logType = LogTypes.Default, [CallerMemberName] string caller = "") {
+		if ((logTypes & logType) == 0)
+			return;
+
+		throw new Exception($"[{caller}]: {message}");
 	}
 }
