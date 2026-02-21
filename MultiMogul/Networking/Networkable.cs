@@ -13,11 +13,15 @@ public class Networkable : Attribute { /* empty class just for handling Network-
 
 	public readonly PacketType packetType;
 	public readonly int packetHash;
+	public readonly uint maxPacketSize;
+	public readonly uint maxPerSecond;
 	public readonly bool isServerMessage;
 
-	public Networkable(PacketType packetId, string packetName, bool serverMessage) {
+	public Networkable(PacketType packetId, string packetName, uint maxSize, uint perSecond, bool serverMessage) {
 		this.packetType = packetId;
 		this.packetHash = packetName.GetHashCode();
+		this.maxPacketSize = maxSize;
+		this.maxPerSecond = perSecond;
 		this.isServerMessage = serverMessage;
 	}
 

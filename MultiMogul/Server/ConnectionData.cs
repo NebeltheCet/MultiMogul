@@ -7,4 +7,5 @@ namespace MultiMogul.Server;
 public class ConnectionData {
 	public Connection connection;
 	public SteamId steamId;
+	public ConnectionInfo connectionInfo;
 }

@@ -8,12 +8,12 @@ public class ServerSocketManager : SocketManager {
 	public override void OnConnectionChanged(Connection connection, ConnectionInfo info) {
 		switch (info.State) {
 			case ConnectionState.Connected:
-				MultiMogulBase.serverManager.OnClientConnected(connection, info.State);
+				MultiMogulBase.serverManager.OnClientConnected(connection, info);
 				break;
 			case ConnectionState.ClosedByPeer:
 			case ConnectionState.ProblemDetectedLocally:
 			case ConnectionState.None:
-				MultiMogulBase.serverManager.OnClientDisconnected(connection, info.State);
+				MultiMogulBase.serverManager.OnClientDisconnected(connection, info);
 				break;
 			default:
 				break;

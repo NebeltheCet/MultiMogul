@@ -1,13 +1,11 @@
 ﻿using MultiMogul.Networking;
 using MultiMogul.Networking.Packets;
-using MultiMogul.Steam;
 using MultiMogul.Utilities;
 using Steamworks;
 using Steamworks.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Sockets;
 using System.Reflection;
 using UnityEngine;
 
@@ -16,12 +14,16 @@ namespace MultiMogul.Server;
 public class ServerManager : MonoBehaviour {
 	public Dictionary<Connection, ConnectionData> connectedClients = new Dictionary<Connection, ConnectionData>();
 	public Lobby currentLobby = new Lobby(0);
+	public PacketCounter packetCounter = new PacketCounter();
 
 	private SocketManager _serverSocket;
 
 	[Header("Server Defaults")]
+	public string serverName = "My Server";
+	public string serverPassword = "";
 	public int maxPlayers = 8;
 
+	public const int MaxPacketsPerSecond = 200;
 	public enum ServerLobbyType : int { // straight copy from Facepunch.Steamworks
 		Private = 0,
 		FriendsOnly = 1,
@@ -77,7 +79,7 @@ public class ServerManager : MonoBehaviour {
 		this._serverSocket?.Receive();
 	}
 
-	public void StartServer() {
+	public void StartServer(string serverName, string serverPassword = "", int maxPlayers = 8) {
 		if (this._serverSocket != null) {
 			MMLog.LogWarning("server is already running");
 			return;
@@ -89,8 +91,13 @@ public class ServerManager : MonoBehaviour {
 			return;
 		}
 
+		MMLog.Log($"set lobby data:\nserver name: \"{serverName}\"\nserver password: \"{serverPassword}\"\nmax players: {maxPlayers}");
+		this.serverName = serverName;
+		this.serverPassword = serverPassword;
+		this.maxPlayers = maxPlayers;
+
 		MMLog.Log($"server socket created: {SteamClient.SteamId}");
-		this.CreateLobbyAsync(this.maxPlayers, ServerLobbyType.Public);
+		this.CreateLobbyAsync(this.serverName, this.maxPlayers, ServerLobbyType.Public);
 	}
 
 	public void StopServer() {
@@ -106,12 +113,12 @@ public class ServerManager : MonoBehaviour {
 		if (this.currentLobby.Id != 0) {
 			this.currentLobby.Leave();
 		}
-		this.currentLobby = new Lobby(0);
 
+		this.currentLobby = new Lobby(0);
 		MMLog.Log($"server socket stopped.");
 	}
 
-	private async void CreateLobbyAsync(int maxPlayers = 8, ServerLobbyType lobbyType = ServerLobbyType.Private) {
+	private async void CreateLobbyAsync(string serverName, int maxPlayers = 8, ServerLobbyType lobbyType = ServerLobbyType.Private) {
 		var lobbyResult = await SteamMatchmaking.CreateLobbyAsync(maxPlayers);
 		if (!lobbyResult.HasValue) {
 			MMLog.LogError("failed to create steam lobby");
@@ -145,7 +152,7 @@ public class ServerManager : MonoBehaviour {
 
 		// game data
 		this.currentLobby.SetData("serverID", SteamClient.SteamId.ToString());
-		this.currentLobby.SetData("serverName", $"{SteamClient.SteamId.Value}'s Lobby");
+		this.currentLobby.SetData("serverName", serverName);
 		this.currentLobby.SetData("playerCount", "1");
 		this.currentLobby.SetData("maxPlayers", maxPlayers.ToString());
 
@@ -154,13 +161,26 @@ public class ServerManager : MonoBehaviour {
 
 	public void OnClientMessage(Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel) {
 		if (!this.connectedClients.ContainsKey(connection)) {
-			MMLog.LogWarning($"client with id [{connection.Id}] is not tracked as connected. ignoring message");
+			MMLog.LogWarning($"client with id [{connection.Id}] is not tracked as connected. closing connection");
+			connection.Close(true, 0, "Not Connected");
 			return;
 		}
 
-		RawPacket receivedPacket = new RawPacket(data, size);
+		bool hasHandledPacket = false;
 
+		RawPacket receivedPacket = new RawPacket(data, size);
 		int messageHash = receivedPacket.Read<string>().GetHashCode();
+
+		this.packetCounter.IncrementCount(messageHash);
+		if (this.packetCounter.GetPacketCount() > MaxPacketsPerSecond) {
+			MMLog.LogWarning($"client with id [{connection.Id}] sent too many packets per second, closing connections");
+			receivedPacket.Dispose();
+
+			this.connectedClients.Remove(connection);
+			connection.Close(false, 0, "Packet Flooding");
+			return;
+		}
+
 		foreach (MethodInfo method in Networkable.packetHandlers[receivedPacket.PacketType]) {
 			if (method.GetCustomAttributes(typeof(Networkable), false).FirstOrDefault() is not Networkable attribute)
 				continue;
@@ -171,17 +191,46 @@ public class ServerManager : MonoBehaviour {
 			if (attribute.packetHash != messageHash)
 				continue;
 
+			if (this.packetCounter.GetPacketCount(messageHash) > attribute.maxPerSecond) {
+				MMLog.LogWarning($"client with id [{connection.Id}] sent too many packets per second of type [{receivedPacket.PacketType}] and hash [{messageHash}]");
+				receivedPacket.Dispose();
+
+				this.connectedClients.Remove(connection);
+				connection.Close(false, 0, "Packet Flooding");
+				return;
+			}
+
+			if (size > attribute.maxPacketSize) {
+				MMLog.LogWarning($"client with id [{connection.Id}] sent unhandled packet size of type [{receivedPacket.PacketType}] and hash [{messageHash}]");
+				receivedPacket.Dispose();
+
+				this.connectedClients.Remove(connection);
+				connection.Close(false, 0, "Invalid Packet Size");
+				return;
+			}
+
 			ThreadDispatcher.Enqueue(() => {
 				method.Invoke(null, [this.connectedClients[connection], receivedPacket]);
 				receivedPacket.Dispose();
 			});
+			hasHandledPacket = true;
 			break;
+		}
+
+		if (!hasHandledPacket) {
+			MMLog.LogWarning($"client with id [{connection.Id}] sent unhandled packet with type [{receivedPacket.PacketType}] and hash [{messageHash}]");
+			receivedPacket.Dispose();
+
+			this.connectedClients.Remove(connection);
+			connection.Close(false);
+			return;
 		}
 	}
 
-	public void OnClientConnected(Connection connection, ConnectionState connectionState) {
+	public void OnClientConnected(Connection connection, ConnectionInfo connectionInfo) {
 		if (this.connectedClients.ContainsKey(connection)) {
-			MMLog.LogWarning($"client with id [{connection.Id}] is already tracked as connected. ignoring connect");
+			MMLog.LogWarning($"client with id [{connection.Id}] is already tracked as connected, closing connection.");
+			connection.Close(true, 0, "Already Connected");
 			return;
 		}
 
@@ -192,15 +241,17 @@ public class ServerManager : MonoBehaviour {
 
 		// add the connection as client
 		this.connectedClients.Add(connection, new ConnectionData {
-			connection = connection
+			connection = connection,
+			connectionInfo = connectionInfo
 		});
 
 		MMLog.Log($"client with id [{connection.Id}] connected", LogTypes.ControlFlow);
 	}
 
-	public void OnClientDisconnected(Connection connection, ConnectionState connectionState) {
+	public void OnClientDisconnected(Connection connection, ConnectionInfo connectionInfo) {
 		if (!this.connectedClients.ContainsKey(connection)) {
-			MMLog.LogWarning($"client with id [{connection.Id}] is not tracked as connected. ignoring disconnect");
+			MMLog.LogWarning($"client with id [{connection.Id}] is not tracked as connected, closing double connection.");
+			connection.Close(true, 0, "Not Connected");
 			return;
 		}
 
