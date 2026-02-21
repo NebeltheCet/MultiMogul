@@ -28,13 +28,16 @@ public class MultiMogulBase : BaseUnityPlugin {
 		ServerManager.Init();
 		ClientManager.Init();
 
-		Networkable.Register();
-
 		// well, this is kinda messy, but this allows our static constructors in our derived packet classes to run, even when the type isn't "touched"
 		var packetTypes = typeof(RawPacket).Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(RawPacket)) && !t.IsAbstract);
 		foreach (var type in packetTypes) {
 			System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(type.TypeHandle);
 		}
+	}
+
+	private void Start() {
+		// this is in the start method to ensure that any mod that implements their own packets had their assembly loaded.
+		Networkable.Register();
 	}
 
 	private void OnApplicationQuit() {
