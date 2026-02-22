@@ -30,7 +30,7 @@ public class OnConnectionResponse : RawPacket {
 	}
 
 	// packet conversion serializer
-	public RawPacket ToRawPacket() {
+	public override RawPacket ToRawPacket() {
 		var packet = new RawPacket(customType, nameof(OnConnectionResponse));
 		packet.Write<OnConnectionResponse>(this);
 

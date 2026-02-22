@@ -149,8 +149,6 @@ public class RawPacket : IDisposable {
 		RawPacket.Send(packet.ToRawPacket(), connection, sendType);
 	}
 
-	private RawPacket ToRawPacket() => throw new NotImplementedException();
-
 	public static void Send(RawPacket packet, Connection connection, SendType sendType) {
 		byte[] packetData = packet.ToArray();
 
@@ -224,5 +222,6 @@ public class RawPacket : IDisposable {
 
 	#region Inheritance Helpers
 	protected virtual void AbstractHandler() { } // empty for this class
+	public virtual RawPacket ToRawPacket() => throw new NotImplementedException();
 	#endregion
 }

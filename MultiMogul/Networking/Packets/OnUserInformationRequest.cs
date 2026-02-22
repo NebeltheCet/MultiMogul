@@ -28,7 +28,7 @@ public class OnUserInformationRequest : RawPacket {
 	}
 
 	// packet conversion serializer
-	public RawPacket ToRawPacket() {
+	public override RawPacket ToRawPacket() {
 		var packet = new RawPacket(customType, nameof(OnUserInformationRequest));
 		packet.Write<OnUserInformationRequest>(this);
 
