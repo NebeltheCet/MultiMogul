@@ -1,20 +1,14 @@
-﻿using MultiMogul.Utilities;
+﻿#nullable enable
+using MultiMogul.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Reflection;
-using static Unity.Collections.LowLevel.Unsafe.BurstRuntime;
 
 #region MemberKey
-internal readonly struct MemberKey : IEquatable<MemberKey> {
-	public readonly Type Type;
-	public readonly string Name;
-	public readonly BindingFlags Flags;
-
-	public MemberKey(Type type, string name, BindingFlags flags) {
-		this.Type = type;
-		this.Name = name;
-		this.Flags = flags;
-	}
+internal readonly struct MemberKey(Type type, string name, BindingFlags flags) : IEquatable<MemberKey> {
+	public readonly Type Type = type;
+	public readonly string Name = name;
+	public readonly BindingFlags Flags = flags;
 
 	public bool Equals(MemberKey other) {
 		return this.Type == other.Type && this.Name == other.Name && this.Flags == other.Flags;
@@ -27,9 +21,9 @@ internal readonly struct MemberKey : IEquatable<MemberKey> {
 	public override int GetHashCode() {
 		unchecked {
 			int hash = 17;
-			hash = hash * 23 + this.Type.GetHashCode();
-			hash = hash * 23 + this.Name.GetHashCode();
-			hash = hash * 23 + this.Flags.GetHashCode();
+			hash = (hash * 23) + this.Type.GetHashCode();
+			hash = (hash * 23) + this.Name.GetHashCode();
+			hash = (hash * 23) + this.Flags.GetHashCode();
 
 			return hash;
 		}

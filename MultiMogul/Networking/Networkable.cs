@@ -8,22 +8,14 @@ using System.Reflection;
 namespace MultiMogul.Networking;
 
 [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-public class Networkable : Attribute { /* empty class just for handling Network-able methods */
-	public static Dictionary<PacketType, List<MethodInfo>> packetHandlers = new Dictionary<PacketType, List<MethodInfo>>();
+public class Networkable(PacketType packetId, uint maxSize, uint perSecond, bool serverMessage) : Attribute { /* empty class just for handling Network-able methods */
+	public static Dictionary<PacketType, List<MethodInfo>> packetHandlers = [];
 
-	public readonly PacketType packetType;
-	public readonly int packetHash;
-	public readonly uint maxPacketSize;
-	public readonly uint maxPerSecond;
-	public readonly bool isServerMessage;
-
-	public Networkable(PacketType packetId, uint maxSize, uint perSecond, bool serverMessage) {
-		this.packetType = packetId;
-		this.packetHash = packetId.ToString().GetHashCode();
-		this.maxPacketSize = maxSize;
-		this.maxPerSecond = perSecond;
-		this.isServerMessage = serverMessage;
-	}
+	public readonly PacketType packetType = packetId;
+	public readonly int packetHash = packetId.ToString().GetHashCode();
+	public readonly uint maxPacketSize = maxSize;
+	public readonly uint maxPerSecond = perSecond;
+	public readonly bool isServerMessage = serverMessage;
 
 	public static void Register() {
 		Type[] assemblyTypes = Assembly.GetExecutingAssembly().GetTypes();
@@ -36,8 +28,13 @@ public class Networkable : Attribute { /* empty class just for handling Network-
 				if (!method.IsStatic)
 					continue;
 
-				packetHandlers[attribute.packetType].Add(method);
-				MMLog.Log($"found packet handler[{type.Namespace}.{type.Name}.{method.Name}({attribute.packetType.ToString()})]", LogTypes.Debug);
+				if (!packetHandlers.TryGetValue(attribute.packetType, out var handlerList)) {
+					handlerList = [];
+					packetHandlers[attribute.packetType] = handlerList;
+				}
+
+				handlerList.Add(method);
+				MMLog.Log($"found packet handler[{type.Namespace}.{type.Name}.{method.Name}({attribute.packetType})]", LogTypes.Debug);
 			}
 		}
 	}

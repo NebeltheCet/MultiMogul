@@ -28,6 +28,8 @@ public class ClientManager : MonoBehaviour {
 		GameObject gameObject = new GameObject("MM_ClientManager", [typeof(ClientManager)]);
 		DontDestroyOnLoad(gameObject);
 
+		MMLog.Log("created ClientManager object", LogTypes.ControlFlow);
+
 		MMLog.Log("finished initializing");
 	}
 
@@ -72,7 +74,7 @@ public class ClientManager : MonoBehaviour {
 			return;
 		}
 
-		MMLog.Log($"received response: {connectionResponse.responseCode.ToString()}");
+		MMLog.Log($"received response: {connectionResponse.responseCode}");
 	}
 
 	private void OnGameLobbyJoinRequested(Lobby lobby, SteamId friendId) {

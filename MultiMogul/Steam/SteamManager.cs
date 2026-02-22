@@ -1,7 +1,6 @@
 ﻿using MultiMogul.Config;
 using MultiMogul.Utilities;
 using Steamworks;
-using System;
 using UnityEngine;
 
 namespace MultiMogul.Steam;
@@ -20,6 +19,8 @@ public class SteamManager : MonoBehaviour {
 
 		GameObject gameObject = new GameObject("MM_SteamManager", [typeof(SteamManager)]);
 		DontDestroyOnLoad(gameObject);
+
+		MMLog.Log("created SteamManager object", LogTypes.ControlFlow);
 	}
 
 	public static void Shutdown() {
@@ -30,6 +31,8 @@ public class SteamManager : MonoBehaviour {
 			return;
 
 		SteamClient.Shutdown();
+		Object.Destroy(Instance.gameObject);
+		Instance = null;
 	}
 
 	private void Start() {

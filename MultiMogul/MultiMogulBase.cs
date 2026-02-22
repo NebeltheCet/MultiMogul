@@ -2,6 +2,7 @@
 global using DISCARD_CLASS = Unity.VisualScripting.This;
 
 using BepInEx;
+using HarmonyLib;
 using MultiMogul.Client;
 using MultiMogul.Config;
 using MultiMogul.Networking;
@@ -17,6 +18,7 @@ namespace MultiMogul;
 public class MultiMogulBase : BaseUnityPlugin {
 	internal static ServerManager serverManager = null;
 	internal static ClientManager clientManager = null;
+	internal static Harmony multiMogulHarmony = null;
 
 	private void Awake() {
 		MMLog.Init(LogTypes.Packets | LogTypes.Debug | LogTypes.ControlFlow);
@@ -27,6 +29,9 @@ public class MultiMogulBase : BaseUnityPlugin {
 
 		ServerManager.Init();
 		ClientManager.Init();
+
+		multiMogulHarmony = new Harmony(this.Info.Metadata.GUID);
+		multiMogulHarmony.PatchAll();
 	}
 
 	private void Start() {

@@ -12,7 +12,7 @@ using UnityEngine;
 namespace MultiMogul.Server;
 
 public class ServerManager : MonoBehaviour {
-	public Dictionary<Connection, ConnectionData> connectedClients = new Dictionary<Connection, ConnectionData>();
+	public Dictionary<Connection, ConnectionData> connectedClients = [];
 	public Lobby currentLobby = new Lobby(0);
 	public PacketCounter packetCounter = new PacketCounter();
 
@@ -115,7 +115,7 @@ public class ServerManager : MonoBehaviour {
 			return;
 		}
 
-		this._serverSocket = SteamNetworkingSockets.CreateRelaySocket<ServerSocketManager>();
+		this._serverSocket = SteamNetworkingSockets.CreateRelaySocket<ServerSocketManager>(0);
 		if (this._serverSocket == null) {
 			MMLog.LogError("failed to create server socket");
 			return;
