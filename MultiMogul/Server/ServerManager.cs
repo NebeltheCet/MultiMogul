@@ -218,6 +218,9 @@ public class ServerManager : MonoBehaviour {
 			if (!method.IsStatic)
 				continue;
 
+			if (!attribute.isServerMessage)
+				continue;
+
 			if (attribute.packetHash != messageHash)
 				continue;
 

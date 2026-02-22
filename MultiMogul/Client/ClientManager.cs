@@ -96,6 +96,9 @@ public class ClientManager : MonoBehaviour {
 			if (!method.IsStatic)
 				continue;
 
+			if (attribute.isServerMessage)
+				continue;
+
 			if (attribute.packetHash != messageHash)
 				continue;
 
