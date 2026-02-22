@@ -1,4 +1,5 @@
 ﻿using MultiMogul.Utilities;
+using Steamworks.Data;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -114,6 +115,7 @@ public class RawPacket : IDisposable {
 
 		this.Write<PacketType>(type); // write packet type as first data
 		this.Write<int>(packetName.GetHashCode());
+		MMLog.Log($"constructed write packet of type[{this.GetType()}]", LogTypes.Packets);
 	}
 
 	// construct from raw data for reading
@@ -125,6 +127,8 @@ public class RawPacket : IDisposable {
 
 		this.PacketType = this.Read<PacketType>();
 		this.Usage = PacketUsage.Reading;
+
+		MMLog.Log($"constructed read packet of type[{this.PacketType}] and size[{size}]", LogTypes.Packets);
 	}
 
 	// construct from raw data for reading
@@ -139,11 +143,16 @@ public class RawPacket : IDisposable {
 
 		this.PacketType = this.Read<PacketType>();
 		this.Usage = PacketUsage.Reading;
+
+		MMLog.Log($"constructed read packet of type[{this.PacketType}] and size[{size}]", LogTypes.Packets);
 	}
 	#endregion
 
 	public static void Send(RawPacket packet, Steamworks.Data.Connection connection, Steamworks.Data.SendType sendType) {
-		connection.SendMessage(packet.ToArray(), sendType);
+		byte[] packetData = packet.ToArray();
+
+		connection.SendMessage(packetData, sendType);
+		MMLog.Log($"sent packet of type[{packet.GetType()}] and size[{packetData.Length}] and send type[{sendType}]", LogTypes.Packets);
 	}
 
 	#region Write Wrappers

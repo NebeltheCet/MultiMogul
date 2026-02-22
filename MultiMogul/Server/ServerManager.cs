@@ -261,18 +261,14 @@ public class ServerManager : MonoBehaviour {
 	}
 
 	public void OnClientConnected(Connection connection, ConnectionInfo connectionInfo) {
-		MMLog.LogWarning("1");
 		if (this.connectedClients.ContainsKey(connection)) {
 			MMLog.LogWarning($"client with id [{connection.Id}] is already tracked as connected, closing connection.");
 			connection.Close(true, 0, "Already Connected");
 			return;
 		}
 
-		MMLog.LogWarning("2");
 		// accept client connection
 		connection.Accept();
-		MMLog.LogWarning("3");
-
 		ThreadDispatcher.Enqueue(() => {
 			using (OnUserInformationRequest packet = new OnUserInformationRequest()) {
 				MMLog.LogWarning("31");
@@ -281,14 +277,12 @@ public class ServerManager : MonoBehaviour {
 			}
 		});
 
-		MMLog.LogWarning("4");
 		// add the connection as client
 		this.connectedClients.Add(connection, new ConnectionData {
 			connection = connection,
 			connectionInfo = connectionInfo
 		});
 
-		MMLog.LogWarning("5");
 		MMLog.Log($"client with id [{connection.Id}] connected", LogTypes.ControlFlow);
 	}
 

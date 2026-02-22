@@ -9,9 +9,7 @@ public class OnUserInformationRequest : RawPacket {
 
 	public OnUserInformationRequest() : base(customType, "OnUserInformationRequest") {
 		if (this.Usage == PacketUsage.Writing) {
-			MMLog.Log("creating packet for writing", LogTypes.Packets);
 			this.Write<OnUserInformationRequest>(this);
-			MMLog.Log("created packet for writing", LogTypes.Packets);
 		}
 	}
 

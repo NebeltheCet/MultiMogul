@@ -14,9 +14,7 @@ public class OnConnectionResponse : RawPacket {
 
 	public OnConnectionResponse() : base(customType, "OnConnectionResponse") {
 		if (this.Usage == PacketUsage.Writing) {
-			MMLog.Log("creating packet for writing", LogTypes.Packets);
 			this.Write<OnConnectionResponse>(this);
-			MMLog.Log("created packet for writing", LogTypes.Packets);
 		}
 	}
 
