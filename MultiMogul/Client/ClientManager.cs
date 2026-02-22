@@ -86,7 +86,7 @@ public class ClientManager : MonoBehaviour {
 
 	public void OnServerMessage(IntPtr data, int size, long messageNum, long recvTime, int channel) {
 		RawPacket receivedPacket = new RawPacket(data, size);
-		int messageHash = receivedPacket.Read<string>().GetHashCode();
+		int messageHash = receivedPacket.Read<int>();
 
 		// packet counters aren't "required" for clients, as hosts "shouldn't" be malicious.
 		foreach (MethodInfo method in Networkable.packetHandlers[receivedPacket.PacketType]) {
