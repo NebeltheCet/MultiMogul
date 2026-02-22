@@ -27,7 +27,6 @@ public class MultiMogulBase : BaseUnityPlugin {
 
 		ServerManager.Init();
 		ClientManager.Init();
-
 	}
 
 	private void Start() {

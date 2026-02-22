@@ -9,6 +9,8 @@ namespace MultiMogul.Networking.Packets;
 
 public enum PacketType {
 	Invalid = 0,
+	OnConnectionApproval,
+	OnRPCMessage
 }
 
 public class RawPacket : IDisposable {
@@ -89,7 +91,7 @@ public class RawPacket : IDisposable {
 	}
 
 	// construct empty packet for writing
-	public RawPacket(PacketType type) {
+	public RawPacket(PacketType type, string packetName) {
 		this.AbstractHandler(); // let parent classes implement this for their own packets
 
 		this._stream = new MemoryStream();
@@ -99,6 +101,7 @@ public class RawPacket : IDisposable {
 		this._packetUsage = PacketUsage.Writing;
 
 		this.Write<PacketType>(type); // write packet type as first data
+		this.Write<string>(packetName);
 	}
 
 	// construct from raw data for reading
