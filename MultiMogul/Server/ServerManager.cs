@@ -199,7 +199,7 @@ public class ServerManager : MonoBehaviour {
 		bool hasHandledPacket = false;
 
 		RawPacket receivedPacket = new RawPacket(data, size);
-		int messageHash = receivedPacket.Read<string>().GetHashCode();
+		int messageHash = receivedPacket.Read<int>();
 
 		this.packetCounter.IncrementCount(messageHash);
 		if (this.packetCounter.GetPacketCount() > MaxPacketsPerSecond) {
@@ -233,7 +233,7 @@ public class ServerManager : MonoBehaviour {
 				return;
 			}
 
-			if (size > attribute.maxPacketSize) {
+			if ((size - RawPacket.HeaderSize) > attribute.maxPacketSize) {
 				MMLog.LogWarning($"client with id [{connection.Id}] sent unhandled packet size of type [{receivedPacket.PacketType}] and hash [{messageHash}]");
 				receivedPacket.Dispose();
 

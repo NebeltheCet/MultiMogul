@@ -17,6 +17,7 @@ public enum PacketType {
 }
 
 public class RawPacket : IDisposable {
+	public static readonly int HeaderSize = sizeof(PacketType) + sizeof(int); // packet type + packet name hash
 	public enum PacketUsage {
 		None = 0,
 		Writing,
@@ -112,7 +113,7 @@ public class RawPacket : IDisposable {
 		this.Usage = PacketUsage.Writing;
 
 		this.Write<PacketType>(type); // write packet type as first data
-		this.Write<string>(packetName);
+		this.Write<int>(packetName.GetHashCode());
 	}
 
 	// construct from raw data for reading
