@@ -1,4 +1,5 @@
-﻿using Steamworks;
+﻿using MultiMogul.Utilities;
+using Steamworks;
 using System;
 
 namespace MultiMogul.Networking.Packets;
@@ -8,13 +9,15 @@ public class OnUserInformationRequest : RawPacket {
 
 	public OnUserInformationRequest() : base(customType, "OnUserInformationRequest") {
 		if (this.Usage == PacketUsage.Writing) {
+			MMLog.Log("creating packet for writing", LogTypes.Packets);
 			this.Write<OnUserInformationRequest>(this);
+			MMLog.Log("created packet for writing", LogTypes.Packets);
 		}
 	}
 
 	// packet members
 	public int passwordHash = 0;
-	public SteamId steamId = 0;
+	public ulong steamId = 0;
 
 	// packet type handler register
 	static OnUserInformationRequest() {
@@ -25,7 +28,7 @@ public class OnUserInformationRequest : RawPacket {
 			p.Write(q.passwordHash);
 
 		}, p => new OnUserInformationRequest {
-			steamId = p.Read<SteamId>(),
+			steamId = p.Read<ulong>(),
 			passwordHash = p.Read<int>()
 		});
 	}

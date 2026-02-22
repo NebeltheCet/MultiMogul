@@ -24,19 +24,27 @@ public class RawPacket : IDisposable {
 	}
 
 	// type handlers
-	private static readonly Dictionary<Type, Action<RawPacket, object>> _writeHandlers = new();
-	private static readonly Dictionary<Type, Func<RawPacket, object>> _readHandlers = new();
+	private static readonly Dictionary<Type, Action<RawPacket, object>> _writeHandlers = [];
+	private static readonly Dictionary<Type, Func<RawPacket, object>> _readHandlers = [];
+	private static readonly Dictionary<Type, Action<RawPacket, object>> _enumHandlers = new()
+		{
+			{ typeof(byte),  (p, v) => p.Write((byte)v) },
+			{ typeof(sbyte), (p, v) => p.Write((sbyte)v) },
+			{ typeof(short), (p, v) => p.Write((short)v) },
+			{ typeof(ushort),(p, v) => p.Write((ushort)v) },
+			{ typeof(int),   (p, v) => p.Write((int)v) },
+			{ typeof(uint),  (p, v) => p.Write((uint)v) },
+			{ typeof(long),  (p, v) => p.Write((long)v) },
+			{ typeof(ulong), (p, v) => p.Write((ulong)v) },
+		};
 
 	// packet data
-	private MemoryStream _stream;
-	private BinaryWriter _writer;
-	private BinaryReader _reader;
+	private readonly MemoryStream _stream;
+	private readonly BinaryWriter _writer;
+	private readonly BinaryReader _reader;
 
-	private readonly PacketUsage _packetUsage;
-	private readonly PacketType _packetType;
-
-	public PacketType PacketType => this._packetType;
-	public PacketUsage Usage => this._packetUsage;
+	public PacketType PacketType { get; }
+	public PacketUsage Usage { get; }
 	public long PayloadSize => this._stream.Length;
 
 	#region Constructors
@@ -100,8 +108,8 @@ public class RawPacket : IDisposable {
 		this._stream = new MemoryStream();
 		this._writer = new BinaryWriter(this._stream);
 
-		this._packetType = type;
-		this._packetUsage = PacketUsage.Writing;
+		this.PacketType = type;
+		this.Usage = PacketUsage.Writing;
 
 		this.Write<PacketType>(type); // write packet type as first data
 		this.Write<string>(packetName);
@@ -114,8 +122,8 @@ public class RawPacket : IDisposable {
 		this._stream = new MemoryStream(data, 0, size);
 		this._reader = new BinaryReader(this._stream);
 
-		this._packetType = this.Read<PacketType>();
-		this._packetUsage = PacketUsage.Reading;
+		this.PacketType = this.Read<PacketType>();
+		this.Usage = PacketUsage.Reading;
 	}
 
 	// construct from raw data for reading
@@ -128,8 +136,8 @@ public class RawPacket : IDisposable {
 		this._stream = new MemoryStream(buffer, 0, size);
 		this._reader = new BinaryReader(this._stream);
 
-		this._packetType = this.Read<PacketType>();
-		this._packetUsage = PacketUsage.Reading;
+		this.PacketType = this.Read<PacketType>();
+		this.Usage = PacketUsage.Reading;
 	}
 	#endregion
 
@@ -140,13 +148,18 @@ public class RawPacket : IDisposable {
 	#region Write Wrappers
 	// generic write
 	public void Write<T>(T value) {
-		if (this._packetUsage != PacketUsage.Writing) {
+		if (this.Usage != PacketUsage.Writing) {
 			MMLog.LogException("tried writing in a non writing packet!", LogTypes.Packets);
 		}
 
 		Type type = typeof(T);
 		if (type.IsEnum) {
-			this.Write(Convert.ChangeType(value, Enum.GetUnderlyingType(type)));
+			var underlying = Enum.GetUnderlyingType(type);
+			if (!_enumHandlers.TryGetValue(underlying, out var writer)) {
+				MMLog.LogException($"unsupported enum underlying type: {underlying}");
+			}
+
+			writer(this, value); // call the delegate
 			return;
 		}
 

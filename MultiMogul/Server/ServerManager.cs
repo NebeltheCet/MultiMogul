@@ -258,34 +258,45 @@ public class ServerManager : MonoBehaviour {
 	}
 
 	public void OnClientConnected(Connection connection, ConnectionInfo connectionInfo) {
+		MMLog.LogWarning("1");
 		if (this.connectedClients.ContainsKey(connection)) {
 			MMLog.LogWarning($"client with id [{connection.Id}] is already tracked as connected, closing connection.");
 			connection.Close(true, 0, "Already Connected");
 			return;
 		}
 
+		MMLog.LogWarning("2");
 		// accept client connection
 		connection.Accept();
+		MMLog.LogWarning("3");
 
-		RawPacket.Send(new OnUserInformationRequest {}, connection, SendType.Reliable);
+		ThreadDispatcher.Enqueue(() => {
+			using (OnUserInformationRequest packet = new OnUserInformationRequest()) {
+				MMLog.LogWarning("31");
+				RawPacket.Send(packet, connection, SendType.Reliable);
+				MMLog.LogWarning("32");
+			}
+		});
 
+		MMLog.LogWarning("4");
 		// add the connection as client
 		this.connectedClients.Add(connection, new ConnectionData {
 			connection = connection,
 			connectionInfo = connectionInfo
 		});
 
+		MMLog.LogWarning("5");
 		MMLog.Log($"client with id [{connection.Id}] connected", LogTypes.ControlFlow);
 	}
 
 	public void OnClientDisconnected(Connection connection, ConnectionInfo connectionInfo) {
 		if (!this.connectedClients.ContainsKey(connection)) {
 			MMLog.LogWarning($"client with id [{connection.Id}] is not tracked as connected, closing double connection.");
-			connection.Close(true, 0, "Not Connected");
+			connection.Close(false, 0, "Not Connected");
 			return;
 		}
 
-		connection.Close(false);
+		connection.Close(true);
 		this.connectedClients.Remove(connection);
 
 		MMLog.Log($"client with id [{connection.Id}] disconnected", LogTypes.ControlFlow);
