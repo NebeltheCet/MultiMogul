@@ -1,7 +1,7 @@
 # MultiMogul - a Mod to add Multiplayer support to MineMogul
 
 ## TODO:
-- [ ] Secure Networking Capability
+- [X] Secure Networking Capability
 - [ ] Lobby Manager with Password Support
 - [ ] Server Browser
 - [ ] Save and Load Manager Wrapper with unique GUIDs for each object
