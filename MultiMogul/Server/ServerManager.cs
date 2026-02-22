@@ -80,13 +80,12 @@ public class ServerManager : MonoBehaviour {
 	}
 
 	[Networkable(PacketType.OnUserInformationRequest, 32, 1, true)]
-	public static void OnUserInformationRequest(Connection connection, RawPacket receivedPacket) {
+	public static void OnUserInformationRequest(ConnectionData connectionData, RawPacket receivedPacket) {
 		MMLog.Log("received user information", LogTypes.ControlFlow);
 
-		ConnectionData connectedClient = MultiMogulBase.serverManager.connectedClients[connection];
-		if (connectedClient == null) {
+		if (connectionData == null) {
 			MMLog.LogWarning("received user information from invalid connected client");
-			connection.Close(true, 0, "Invalid Connection");
+			connectionData.connection.Close(true, 0, "Invalid Connection");
 			return;
 		}
 
@@ -103,10 +102,10 @@ public class ServerManager : MonoBehaviour {
 			responseCode = ConnectionResponseCode.InvalidPassword;
 		}
 
-		connectedClient.steamId = userInformation.steamId;
+		connectionData.steamId = userInformation.steamId;
 		RawPacket.Send(new OnConnectionResponse {
 			responseCode = responseCode,
-		}, connection, SendType.Reliable);
+		}, connectionData.connection, SendType.Reliable);
 	}
 
 	public void StartServer(string serverName, string serverPassword = "", int maxPlayers = 8) {
