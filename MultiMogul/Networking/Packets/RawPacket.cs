@@ -11,10 +11,7 @@ namespace MultiMogul.Networking.Packets;
 public enum PacketType {
 	Invalid = 0,
 	OnUserInformationRequest,
-	OnConnectionResponse,
-
-
-	OnRPCMessage
+	OnConnectionResponse
 }
 
 public class RawPacket : IDisposable {
@@ -148,11 +145,18 @@ public class RawPacket : IDisposable {
 	}
 	#endregion
 
-	public static void Send(RawPacket packet, Steamworks.Data.Connection connection, Steamworks.Data.SendType sendType) {
+	public static void Send<T>(T packet, Connection connection, SendType sendType) where T : RawPacket {
+		RawPacket.Send(packet.ToRawPacket(), connection, sendType);
+	}
+
+	private RawPacket ToRawPacket() => throw new NotImplementedException();
+
+	public static void Send(RawPacket packet, Connection connection, SendType sendType) {
 		byte[] packetData = packet.ToArray();
 
-		connection.SendMessage(packetData, sendType);
 		MMLog.Log($"sent packet of type[{packet.GetType()}] and size[{packetData.Length}] and send type[{sendType}]", LogTypes.Packets);
+		connection.SendMessage(packetData, sendType);
+		packet.Dispose();
 	}
 
 	#region Write Wrappers

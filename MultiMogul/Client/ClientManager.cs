@@ -58,6 +58,7 @@ public class ClientManager : MonoBehaviour {
 	public static void OnUserInformationRequest(ConnectionManager localConnection, RawPacket receivedPacket) {
 		MMLog.Log("server requested user information.", LogTypes.ControlFlow);
 
+		MMLog.Log("current password hash: " + MultiMogulBase.clientManager.currentServerPassword.GetHashCode());
 		RawPacket.Send(new OnUserInformationRequest {
 			passwordHash = MultiMogulBase.clientManager.currentServerPassword.GetHashCode(),
 			steamId = SteamClient.SteamId

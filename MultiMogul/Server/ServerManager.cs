@@ -6,6 +6,7 @@ using Steamworks.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Reflection;
 using UnityEngine;
 
@@ -95,6 +96,8 @@ public class ServerManager : MonoBehaviour {
 			return;
 		}
 
+		MMLog.Log($"Server: packet received, passwordHash={userInformation.passwordHash}, steamId={userInformation.steamId}", LogTypes.ControlFlow);
+
 		ConnectionResponseCode responseCode = ConnectionResponseCode.Success;
 
 		int passwordHash = MultiMogulBase.serverManager.serverPassword.GetHashCode();
@@ -104,7 +107,7 @@ public class ServerManager : MonoBehaviour {
 
 		connectionData.steamId = userInformation.steamId;
 		RawPacket.Send(new OnConnectionResponse {
-			responseCode = responseCode,
+			responseCode = responseCode
 		}, connectionData.connection, SendType.Reliable);
 	}
 
@@ -269,9 +272,7 @@ public class ServerManager : MonoBehaviour {
 		// accept client connection
 		connection.Accept();
 		ThreadDispatcher.Enqueue(() => {
-			using (OnUserInformationRequest packet = new OnUserInformationRequest()) {
-				RawPacket.Send(packet, connection, SendType.Reliable);
-			}
+			RawPacket.Send(new OnUserInformationRequest { }, connection, SendType.Reliable);
 		});
 
 		// add the connection as client

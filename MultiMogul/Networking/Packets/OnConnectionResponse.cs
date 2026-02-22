@@ -12,11 +12,7 @@ public enum ConnectionResponseCode {
 public class OnConnectionResponse : RawPacket {
 	private const PacketType customType = PacketType.OnConnectionResponse;
 
-	public OnConnectionResponse() : base(customType, "OnConnectionResponse") {
-		if (this.Usage == PacketUsage.Writing) {
-			this.Write<OnConnectionResponse>(this);
-		}
-	}
+	public OnConnectionResponse() : base(customType, "OnConnectionResponse") {}
 
 	// packet members
 	public ConnectionResponseCode responseCode = ConnectionResponseCode.Invalid;
@@ -31,5 +27,13 @@ public class OnConnectionResponse : RawPacket {
 		}, p => new OnConnectionResponse {
 			responseCode = p.Read<ConnectionResponseCode>()
 		});
+	}
+
+	// packet conversion serializer
+	public RawPacket ToRawPacket() {
+		var packet = new RawPacket(customType, nameof(OnConnectionResponse));
+		packet.Write<OnConnectionResponse>(this);
+
+		return packet;
 	}
 }

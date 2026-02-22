@@ -7,11 +7,7 @@ namespace MultiMogul.Networking.Packets;
 public class OnUserInformationRequest : RawPacket {
 	private const PacketType customType = PacketType.OnUserInformationRequest;
 
-	public OnUserInformationRequest() : base(customType, "OnUserInformationRequest") {
-		if (this.Usage == PacketUsage.Writing) {
-			this.Write<OnUserInformationRequest>(this);
-		}
-	}
+	public OnUserInformationRequest() : base(customType, "OnUserInformationRequest") {}
 
 	// packet members
 	public int passwordHash = 0;
@@ -29,5 +25,13 @@ public class OnUserInformationRequest : RawPacket {
 			steamId = p.Read<ulong>(),
 			passwordHash = p.Read<int>()
 		});
+	}
+
+	// packet conversion serializer
+	public RawPacket ToRawPacket() {
+		var packet = new RawPacket(customType, nameof(OnUserInformationRequest));
+		packet.Write<OnUserInformationRequest>(this);
+
+		return packet;
 	}
 }
