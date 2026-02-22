@@ -13,3 +13,4 @@
 - [ ] Building Interaction(Place, Pack, Pick up)
 - [ ] Quests & Research
 - [ ] Mod Support Interface(allowing a simple interface to add custom RPCs and networking of certain mod specific actions)
+- [ ] allow for save file conversion(multiplayer save <-> singleplayer save)
