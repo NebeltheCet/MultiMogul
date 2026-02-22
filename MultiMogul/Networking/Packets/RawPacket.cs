@@ -9,7 +9,10 @@ namespace MultiMogul.Networking.Packets;
 
 public enum PacketType {
 	Invalid = 0,
-	OnConnectionApproval,
+	OnUserInformationRequest,
+	OnConnectionResponse,
+
+
 	OnRPCMessage
 }
 
@@ -129,6 +132,10 @@ public class RawPacket : IDisposable {
 		this._packetUsage = PacketUsage.Reading;
 	}
 	#endregion
+
+	public static void Send(RawPacket packet, Steamworks.Data.Connection connection, Steamworks.Data.SendType sendType) {
+		connection.SendMessage(packet.ToArray(), sendType);
+	}
 
 	#region Write Wrappers
 	// generic write

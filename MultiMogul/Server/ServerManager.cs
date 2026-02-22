@@ -79,6 +79,36 @@ public class ServerManager : MonoBehaviour {
 		this._serverSocket?.Receive();
 	}
 
+	[Networkable(PacketType.OnUserInformationRequest, 32, 1, true)]
+	public static void OnUserInformationRequest(Connection connection, RawPacket receivedPacket) {
+		MMLog.Log("received user information", LogTypes.ControlFlow);
+
+		ConnectionData connectedClient = MultiMogulBase.serverManager.connectedClients[connection];
+		if (connectedClient == null) {
+			MMLog.LogWarning("received user information from invalid connected client");
+			connection.Close(true, 0, "Invalid Connection");
+			return;
+		}
+
+		OnUserInformationRequest userInformation = receivedPacket.Read<OnUserInformationRequest>();
+		if (userInformation == null) {
+			MMLog.LogWarning("received invalid user information packet");
+			return;
+		}
+
+		ConnectionResponseCode responseCode = ConnectionResponseCode.Success;
+
+		int passwordHash = MultiMogulBase.serverManager.serverPassword.GetHashCode();
+		if (userInformation.passwordHash != passwordHash) {
+			responseCode = ConnectionResponseCode.InvalidPassword;
+		}
+
+		connectedClient.steamId = userInformation.steamId;
+		RawPacket.Send(new OnConnectionResponse {
+			responseCode = responseCode,
+		}, connection, SendType.Reliable);
+	}
+
 	public void StartServer(string serverName, string serverPassword = "", int maxPlayers = 8) {
 		if (this._serverSocket != null) {
 			MMLog.LogWarning("server is already running");
@@ -237,7 +267,7 @@ public class ServerManager : MonoBehaviour {
 		// accept client connection
 		connection.Accept();
 
-		//TODO: send connection approval packet
+		RawPacket.Send(new OnUserInformationRequest {}, connection, SendType.Reliable);
 
 		// add the connection as client
 		this.connectedClients.Add(connection, new ConnectionData {

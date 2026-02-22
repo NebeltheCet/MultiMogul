@@ -17,9 +17,9 @@ public class Networkable : Attribute { /* empty class just for handling Network-
 	public readonly uint maxPerSecond;
 	public readonly bool isServerMessage;
 
-	public Networkable(PacketType packetId, string packetName, uint maxSize, uint perSecond, bool serverMessage) {
+	public Networkable(PacketType packetId, uint maxSize, uint perSecond, bool serverMessage) {
 		this.packetType = packetId;
-		this.packetHash = packetName.GetHashCode();
+		this.packetHash = packetId.ToString().GetHashCode();
 		this.maxPacketSize = maxSize;
 		this.maxPerSecond = perSecond;
 		this.isServerMessage = serverMessage;
