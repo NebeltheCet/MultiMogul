@@ -10,7 +10,7 @@ public enum ConnectionResponseCode {
 }
 
 public class OnConnectionResponse : RawPacket {
-	private const PacketType customType = PacketType.Invalid;
+	private const PacketType customType = PacketType.OnConnectionResponse;
 
 	public OnConnectionResponse() : base(customType, "OnConnectionResponse") {
 		if (this.Usage == PacketUsage.Writing) {

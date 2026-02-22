@@ -270,9 +270,7 @@ public class ServerManager : MonoBehaviour {
 		connection.Accept();
 		ThreadDispatcher.Enqueue(() => {
 			using (OnUserInformationRequest packet = new OnUserInformationRequest()) {
-				MMLog.LogWarning("31");
 				RawPacket.Send(packet, connection, SendType.Reliable);
-				MMLog.LogWarning("32");
 			}
 		});
 
