@@ -16,6 +16,12 @@ public class MainMenuHooks {
 		if (hasStartedElevatorAnimation.Value)
 			return;
 
-		MultiMogulBase.serverManager.StartServer("Test Game");
+		string serverName = NewGameMenuHooks.nameInput.text;
+		string serverPassword = NewGameMenuHooks.passwordInput.text;
+
+		int serverMaxPlayers;
+		int.TryParse(NewGameMenuHooks.maxPlayerInput.text, out serverMaxPlayers);
+
+		MultiMogulBase.serverManager.StartServer(serverName, serverPassword, serverMaxPlayers);
 	}
 }
