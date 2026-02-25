@@ -33,4 +33,27 @@ public class UIHelper {
 
 		return newInput;
 	}
+
+	public static TMP_InputField CreateInputFieldFromInstance(TMP_InputField instance, Transform parent, string name, UnityEngine.Vector2 pos, UnityEngine.Vector2 size, string text, string hint, ContentType contentType = ContentType.Standard) {
+		TMP_InputField newInput = UnityEngine.Object.Instantiate(instance, parent);
+		newInput.name = name;
+		newInput.text = text;
+
+		RectTransform rectTransform = newInput.GetComponent<RectTransform>();
+		if (rectTransform != null) {
+			rectTransform.anchoredPosition = pos;
+			rectTransform.sizeDelta = size;
+		}
+
+		TMP_Text placeholder = newInput.placeholder as TMP_Text;
+		if (placeholder != null) {
+			placeholder.text = hint;
+		}
+
+		if (contentType != ContentType.Standard) {
+			newInput.contentType = contentType;
+		}
+
+		return newInput;
+	}
 }

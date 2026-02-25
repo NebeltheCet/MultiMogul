@@ -19,7 +19,7 @@ public class NewGameMenuHooks {
 		ReflectionField<TMP_InputField> newSaveFileNameInputField = ReflectionHelper.GetField<TMP_InputField>(__instance, "_newSaveFileNameInputField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
 		if (!nameInput) {
-			nameInput = UIHelper.CreateInputFieldFromInstance(newSaveFileNameInputField, "LobbyNameTextInput", new Vector2(-300, -30), "", "Lobby name: 'MMTestLobby'");
+			nameInput = UIHelper.CreateInputFieldFromInstance(newSaveFileNameInputField,"LobbyNameTextInput", new Vector2(-300, -30), "", "Lobby name: 'MMTestLobby'");
 		}
 
 		if (!passwordInput) {
@@ -47,5 +47,13 @@ public class NewGameMenuHooks {
 		}
 
 		confirmNewGameButton.Value.enabled = true;
+	}
+
+	[HarmonyPostfix]
+	[HarmonyPatch(typeof(NewGameMenu), "OnDisable")]
+	public static void PostOnDisable(NewGameMenu __instance) {
+		nameInput.text = "";
+		passwordInput.text = "";
+		maxPlayerInput.text = "";
 	}
 }
