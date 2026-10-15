@@ -24,6 +24,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Utilities\Extensions\**" />
+    <EmbeddedResource Remove="Utilities\Extensions\**" />
+    <None Remove="Utilities\Extensions\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
     <PackageReference Include="BepInEx.Core" Version="5.*" />
     <PackageReference Include="UnityEngine.Modules" Version="6000.2.9" IncludeAssets="compile" />
@@ -457,10 +463,6 @@
     <Reference Include="UnityUIExtensions.examples"> 
       <HintPath>..\lib\UnityUIExtensions.examples.dll</HintPath> 
     </Reference> 
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Folder Include="Utilities\Extensions\" />
   </ItemGroup>
 
   <PropertyGroup>

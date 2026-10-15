@@ -9,8 +9,6 @@ using UnityEngine.SceneManagement;
 namespace MultiMogul.SaveManager;
 
 public static class SaveManager {
-	public const int MULTIPLAYER_VERSION = 1000; // the save manager version for multiplayer saves
-
 	public static string GetCurrentSave() {
 		Singleton<SavingLoadingManager>.Instance.SaveGame(Singleton<SavingLoadingManager>.Instance.ActiveSaveFileName, false);
 		return SavingLoadingManagerHooks.lastSaveJsonData;

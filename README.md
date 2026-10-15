@@ -7,8 +7,8 @@ and hopefully allowing for a simple compatibility layer between other mods
 - [X] Lobby Manager with Password Support
 - [ ] Server Browser
 - [ ] Save and Load Manager Wrapper with unique GUIDs for each object
-- [ ] Map Networking
-- [ ] Player Networking(Model, Tick Movement, etc.) following a Client Trust model
+- [X] Map Networking
+- [X] Player Networking(Model, Tick Movement, etc.) following a Client Trust model
 - [ ] World Events(explosives)
 - [ ] Item Interaction(dropping, picking up, dragging, etc.)
 - [ ] Shop Networking(Balance, Cart, Buy, Sell)
