@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using MultiMogul.Config;
 using MultiMogul.Utilities;
 using TMPro;
 using UnityEngine;
@@ -9,30 +10,30 @@ namespace MultiMogul.Hooks;
 
 [HarmonyPatch]
 public class NewGameMenuHooks {
-	public static TMP_InputField nameInput = null;
-	public static TMP_InputField passwordInput = null;
-	public static TMP_InputField maxPlayerInput = null;
-
 	[HarmonyPostfix]
 	[HarmonyPatch(typeof(NewGameMenu), "OnEnable")]
 	public static void PostOnEnable(NewGameMenu __instance) {
-		ReflectionField<TMP_InputField> newSaveFileNameInputField = ReflectionHelper.GetField<TMP_InputField>(__instance, "_newSaveFileNameInputField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+		ServerConfig.InitializeUI();
+		ServerConfig.SetUIParent(__instance.transform);
 
-		if (!nameInput) {
-			nameInput = UIHelper.CreateInputFieldFromInstance(newSaveFileNameInputField,"LobbyNameTextInput", new Vector2(-300, -30), "", "Lobby name: 'MMTestLobby'");
+		ServerConfig.SetInputSize(new Vector2(220, 35));
+
+		RectTransform rectTransform = ServerConfig.nameInput.GetComponent<RectTransform>();
+		if (rectTransform != null) {
+			rectTransform.anchoredPosition = new Vector2(-300, -135);
 		}
 
-		if (!passwordInput) {
-			passwordInput = UIHelper.CreateInputFieldFromInstance(newSaveFileNameInputField, "LobbyPasswordTextInput", new Vector2(-300, -70), "", "Lobby password: '123'", ContentType.Password);
+		rectTransform = ServerConfig.passwordInput.GetComponent<RectTransform>();
+		if (rectTransform != null) {
+			rectTransform.anchoredPosition = new Vector2(-300, -175);
 		}
 
-		if (!maxPlayerInput) {
-			maxPlayerInput = UIHelper.CreateInputFieldFromInstance(newSaveFileNameInputField, "LobbyMaxPlayersTextInput", new Vector2(-300, -110), "", "Lobby max players: '8'", ContentType.IntegerNumber);
+		rectTransform = ServerConfig.maxPlayerInput.GetComponent<RectTransform>();
+		if (rectTransform != null) {
+			rectTransform.anchoredPosition = new Vector2(-300, -215);
 		}
 
-		nameInput.text = "";
-		passwordInput.text = "";
-		maxPlayerInput.text = "";
+		ServerConfig.EnableUI();
 	}
 
 
@@ -40,7 +41,7 @@ public class NewGameMenuHooks {
 	[HarmonyPatch(typeof(NewGameMenu), "Update")]
 	public static void PostUpdate(NewGameMenu __instance) {
 		ReflectionField<Button> confirmNewGameButton = ReflectionHelper.GetField<Button>(__instance, "_confirmNewGameButton", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-		if (string.IsNullOrEmpty(nameInput.text) || string.IsNullOrEmpty(maxPlayerInput.text)) {
+		if (string.IsNullOrEmpty(ServerConfig.nameInput.text) || string.IsNullOrEmpty(ServerConfig.maxPlayerInput.text)) {
 			confirmNewGameButton.Value.interactable = false;
 			confirmNewGameButton.Value.enabled = false;
 			return;
@@ -52,8 +53,7 @@ public class NewGameMenuHooks {
 	[HarmonyPostfix]
 	[HarmonyPatch(typeof(NewGameMenu), "OnDisable")]
 	public static void PostOnDisable(NewGameMenu __instance) {
-		nameInput.text = "";
-		passwordInput.text = "";
-		maxPlayerInput.text = "";
+		ServerConfig.Reset();
+		ServerConfig.DisableUI();
 	}
 }

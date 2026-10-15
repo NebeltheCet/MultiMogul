@@ -1,4 +1,6 @@
 ﻿using HarmonyLib;
+using MultiMogul.Config;
+using MultiMogul.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,19 +18,16 @@ public class MainMenuHooks {
 		if (hasStartedElevatorAnimation.Value)
 			return;
 
-		string serverName = "";
-		string serverPassword = "";
-		int serverMaxPlayers = 0;
+		if (!ServerConfig.nameInput || !ServerConfig.maxPlayerInput)
+			return;
 
-		if(!string.IsNullOrEmpty(LoadingMenuHooks.nameInput.text) && !string.IsNullOrEmpty(LoadingMenuHooks.maxPlayerInput.text)) {
-			serverName = LoadingMenuHooks.nameInput.text;
-			serverPassword = LoadingMenuHooks.passwordInput.text;
-			int.TryParse(LoadingMenuHooks.maxPlayerInput.text, out serverMaxPlayers);
-		}
-		else if (!string.IsNullOrEmpty(NewGameMenuHooks.nameInput.text) && !string.IsNullOrEmpty(NewGameMenuHooks.maxPlayerInput.text)) {
-			serverName = NewGameMenuHooks.nameInput.text;
-			serverPassword = NewGameMenuHooks.passwordInput.text;
-			int.TryParse(NewGameMenuHooks.maxPlayerInput.text, out serverMaxPlayers);
+		if (string.IsNullOrEmpty(ServerConfig.nameInput.text) || string.IsNullOrEmpty(ServerConfig.maxPlayerInput.text))
+			return;
+
+		string serverName = ServerConfig.nameInput.text;
+		string serverPassword = ServerConfig.passwordInput.text;
+		if (!int.TryParse(ServerConfig.maxPlayerInput.text, out int serverMaxPlayers)) {
+			MMLog.LogException("failed to parse max players input field");
 		}
 
 		MultiMogulBase.serverManager.StartServer(serverName, serverPassword, serverMaxPlayers);
