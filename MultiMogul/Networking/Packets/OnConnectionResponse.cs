@@ -16,6 +16,9 @@ public class OnConnectionResponse : RawPacket {
 
 	// packet members
 	public ConnectionResponseCode responseCode = ConnectionResponseCode.Invalid;
+	public GameModeType gameMode = GameModeType.Standard;
+	public string sceneName = string.Empty;
+	public string worldData = string.Empty;
 
 	// packet type handler register
 	static OnConnectionResponse() {
@@ -23,9 +26,15 @@ public class OnConnectionResponse : RawPacket {
 			var q = (OnConnectionResponse)v;
 
 			p.Write(q.responseCode);
+			p.Write(q.gameMode);
+			p.Write(q.sceneName);
+			p.Write(q.worldData);
 
 		}, p => new OnConnectionResponse {
-			responseCode = p.Read<ConnectionResponseCode>()
+			responseCode = p.Read<ConnectionResponseCode>(),
+			gameMode = p.Read<GameModeType>(),
+			sceneName = p.Read<string>(),
+			worldData = p.Read<string>()
 		});
 	}
 

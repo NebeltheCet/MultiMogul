@@ -91,6 +91,7 @@ public class ClientManager : MonoBehaviour {
 			return;
 		}
 
+		MultiMogulBase.clientManager.StartCoroutine(SaveManager.LoadSaveFromJson(connectionResponse.sceneName, connectionResponse.worldData, connectionResponse.gameMode));
 		MultiMogulBase.clientManager._isConnected = true;
 	}
 

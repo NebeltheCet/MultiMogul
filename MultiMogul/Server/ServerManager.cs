@@ -113,9 +113,17 @@ public class ServerManager : MonoBehaviour {
 			responseCode = ConnectionResponseCode.InvalidPassword;
 		}
 
+		string saveData = string.Empty;
+		if (responseCode == ConnectionResponseCode.Success) {
+			saveData = SaveManager.GetCurrentSave(); // don't network the save when the connection wasn't successful!
+		}
+
 		connectionData.steamId = userInformation.steamId;
 		RawPacket.Send(new OnConnectionResponse {
-			responseCode = responseCode
+			responseCode = responseCode,
+			gameMode = Singleton<GamemodeManager>.Instance.GameModeType,
+			sceneName = SaveManager.GetCurrentSceneName(),
+			worldData = saveData
 		}, connectionData.connection, SendType.Reliable);
 	}
 
