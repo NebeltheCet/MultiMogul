@@ -37,7 +37,7 @@ public class PlayerDataResponse {
 public class OnConnectionResponse : RawPacket {
 	private const PacketType customType = PacketType.OnConnectionResponse;
 
-	public OnConnectionResponse() : base(customType, "OnConnectionResponse") {}
+	public OnConnectionResponse() : base(customType, nameof(OnConnectionResponse)) {}
 
 	// packet members
 	public ConnectionResponseCode responseCode = ConnectionResponseCode.Invalid;
@@ -69,7 +69,7 @@ public class OnConnectionResponse : RawPacket {
 
 	// packet conversion serializer
 	public override RawPacket ToRawPacket() {
-		var packet = new RawPacket(customType, nameof(OnConnectionResponse));
+		var packet = new RawPacket(customType, nameof(OnConnectionResponse), true);
 		packet.Write<OnConnectionResponse>(this);
 
 		return packet;

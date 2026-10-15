@@ -8,19 +8,39 @@ using System.Reflection;
 namespace MultiMogul.Networking;
 
 [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-public class Networkable(PacketType packetId, uint maxSize, uint perSecond, bool serverMessage) : Attribute { /* empty class just for handling Network-able methods */
+public class Networkable : Attribute {
 	public static Dictionary<PacketType, List<MethodInfo>> packetHandlers = [];
 
-	public readonly PacketType packetType = packetId;
-	public readonly int packetHash = packetId.ToString().GetHashCode();
-	public readonly uint maxPacketSize = maxSize;
-	public readonly uint maxPerSecond = perSecond;
-	public readonly bool isServerMessage = serverMessage;
+	public readonly PacketType packetType;
+	public readonly int packetHash;
+	public readonly uint maxPacketSize;
+	public readonly uint maxPerSecond;
+	public readonly bool isServerMessage;
+
+	public Networkable(PacketType packetId, uint maxSize, uint perSecond, bool serverMessage) {
+		this.packetType = packetId;
+		this.packetHash = packetId.ToString().GetHashCode();
+		this.maxPacketSize = maxSize;
+		this.maxPerSecond = perSecond;
+		this.isServerMessage = serverMessage;
+	}
+
+	public Networkable(PacketType packetId, string hashString, uint maxSize, uint perSecond, bool serverMessage) {
+		this.packetType = packetId;
+		this.packetHash = hashString.GetHashCode();
+		this.maxPacketSize = maxSize;
+		this.maxPerSecond = perSecond;
+		this.isServerMessage = serverMessage;
+	}
 
 	public static void Register() {
 		Type[] assemblyTypes = Assembly.GetExecutingAssembly().GetTypes();
 		foreach (Type type in assemblyTypes) {
-			MethodInfo[] methods = type.GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+			MethodInfo[] methods = type.GetMethods(
+				BindingFlags.Instance | BindingFlags.Static |
+				BindingFlags.Public | BindingFlags.NonPublic
+			);
+
 			foreach (MethodInfo method in methods) {
 				if (method.GetCustomAttributes(typeof(Networkable), false).FirstOrDefault() is not Networkable attribute)
 					continue;
@@ -34,7 +54,7 @@ public class Networkable(PacketType packetId, uint maxSize, uint perSecond, bool
 				}
 
 				handlerList.Add(method);
-				MMLog.Log($"found packet handler[{type.Namespace}.{type.Name}.{method.Name}({attribute.packetType})]", LogTypes.Debug);
+				MMLog.Log($"found packet handler[{type.Namespace}.{type.Name}.{method.Name}({attribute.packetType})]",LogTypes.Debug);
 			}
 		}
 	}

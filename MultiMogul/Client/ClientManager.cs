@@ -16,12 +16,24 @@ namespace MultiMogul.Client;
 using SaveManager = SaveManager.SaveManager;
 
 public class ClientManager : MonoBehaviour {
-	private ConnectionManager _clientConnection;
+	private ConnectionManager _clientConnection = null;
 
 	public SteamId currentServerId = 0;
 	public string currentServerPassword = string.Empty;
 
 	private bool _isConnected = false;
+
+	public static Connection GetConnection() {
+		if (MultiMogulBase.clientManager == null) {
+			MMLog.LogException("failed to get client manager, report this to the developers!");
+		}
+
+		if (MultiMogulBase.clientManager._clientConnection == null) {
+			MMLog.LogException("failed to get client connection, report this to the developers!");
+		}
+
+		return MultiMogulBase.clientManager._clientConnection.Connection;
+	}
 
 	public static bool IsConnected() {
 		if (MultiMogulBase.clientManager == null)
@@ -77,7 +89,7 @@ public class ClientManager : MonoBehaviour {
 		}, localConnection.Connection, SendType.Reliable);
 	}
 
-	[Networkable(PacketType.OnConnectionResponse, 8, 1, false)]
+	[Networkable(PacketType.OnConnectionResponse, uint.MaxValue, 1, false)]
 	public static void OnConnectionResponse(ConnectionManager localConnection, RawPacket receivedPacket) {
 		MMLog.Log("received connection response", LogTypes.ControlFlow);
 

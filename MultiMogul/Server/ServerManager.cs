@@ -127,7 +127,7 @@ public class ServerManager : MonoBehaviour {
 
 			// TODO: send a packet to every connected player(other than current) with the created player!
 
-			foreach (Player player in Player.ActivePlayers) {
+			foreach (Player player in Player.activePlayers) {
 				playerDataResponses.Add(new PlayerDataResponse {
 					steamId = player.SteamId,
 					position = player.transform.position,

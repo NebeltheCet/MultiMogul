@@ -11,7 +11,8 @@ namespace MultiMogul.Networking.Packets;
 public enum PacketType {
 	Invalid = 0,
 	OnUserInformationRequest,
-	OnConnectionResponse
+	OnConnectionResponse,
+	OnRPCMessage
 }
 
 public class RawPacket : IDisposable {
@@ -101,7 +102,7 @@ public class RawPacket : IDisposable {
 	}
 
 	// construct empty packet for writing
-	public RawPacket(PacketType type, string packetName) {
+	public RawPacket(PacketType type, string packetName, bool isConversion = false) {
 		this.AbstractHandler(); // let parent classes implement this for their own packets
 
 		this._stream = new MemoryStream();
@@ -112,7 +113,10 @@ public class RawPacket : IDisposable {
 
 		this.Write<PacketType>(type); // write packet type as first data
 		this.Write<int>(packetName.GetHashCode());
-		MMLog.Log($"constructed write packet of type[{this.GetType()}]", LogTypes.Packets);
+
+		if (!isConversion) {
+			MMLog.Log($"constructed write packet of type[{this.GetType()}]", LogTypes.Packets);
+		}
 	}
 
 	// construct from raw data for reading
@@ -124,6 +128,7 @@ public class RawPacket : IDisposable {
 
 		this.PacketType = this.Read<PacketType>();
 		this.Usage = PacketUsage.Reading;
+
 
 		MMLog.Log($"constructed read packet of type[{this.PacketType}] and size[{size}]", LogTypes.Packets);
 	}
@@ -145,14 +150,17 @@ public class RawPacket : IDisposable {
 	}
 	#endregion
 
-	public static void Send<T>(T packet, Connection connection, SendType sendType) where T : RawPacket {
-		RawPacket.Send(packet.ToRawPacket(), connection, sendType);
+	public static void Send<T>(T packet, Connection connection, SendType sendType, bool excludeLog = false) where T : RawPacket {
+		RawPacket.Send(packet.ToRawPacket(), connection, sendType, excludeLog);
 	}
 
-	public static void Send(RawPacket packet, Connection connection, SendType sendType) {
+	public static void Send(RawPacket packet, Connection connection, SendType sendType, bool excludeLog) {
 		byte[] packetData = packet.ToArray();
 
-		MMLog.Log($"sent packet of type[{packet.GetType()}] and size[{packetData.Length}] and send type[{sendType}]", LogTypes.Packets);
+		if (!excludeLog) {
+			MMLog.Log($"sent packet of type[{packet.GetType()}] and size[{packetData.Length}] and send type[{sendType}]", LogTypes.Packets);
+		}
+
 		connection.SendMessage(packetData, sendType);
 		packet.Dispose();
 	}

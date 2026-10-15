@@ -7,7 +7,7 @@ namespace MultiMogul.Networking.Packets;
 public class OnUserInformationRequest : RawPacket {
 	private const PacketType customType = PacketType.OnUserInformationRequest;
 
-	public OnUserInformationRequest() : base(customType, "OnUserInformationRequest") {}
+	public OnUserInformationRequest() : base(customType, nameof(OnUserInformationRequest)) {}
 
 	// packet members
 	public int passwordHash = 0;
@@ -29,7 +29,7 @@ public class OnUserInformationRequest : RawPacket {
 
 	// packet conversion serializer
 	public override RawPacket ToRawPacket() {
-		var packet = new RawPacket(customType, nameof(OnUserInformationRequest));
+		var packet = new RawPacket(customType, nameof(OnUserInformationRequest), true);
 		packet.Write<OnUserInformationRequest>(this);
 
 		return packet;

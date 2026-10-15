@@ -40,6 +40,13 @@ public class SteamManager : MonoBehaviour {
 
 		try {
 			if (!SteamClient.IsValid) {
+				// / temporary // this allows for easier testing using clients that don't actually own the game.
+				// the exact bug that happens is that sometimes when a client is not closed properly,
+				// it may display as the client playing MineMogul instead of Spacewar, which messes with the invite system.
+				SteamClient.Init(Configuration.AppId, true);
+				SteamClient.Shutdown();
+				// temporary \
+
 				SteamClient.Init(Configuration.AppId, true);
 				MMLog.Log($"Steamworks successfully initialized: {SteamClient.SteamId}");
 			}
