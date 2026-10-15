@@ -1,16 +1,8 @@
 ﻿using HarmonyLib;
 using MultiMogul.Config;
 using MultiMogul.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.UIElements;
-using static TMPro.TMP_InputField;
+using UnityEngine.UI;
 
 namespace MultiMogul.Hooks;
 
@@ -37,14 +29,24 @@ public class LoadingMenuHooks {
 		if (rectTransform != null) {
 			rectTransform.anchoredPosition = new Vector2(-525, -680);
 		}
+	}
 
-		ServerConfig.EnableUI();
+	[HarmonyPrefix]
+	[HarmonyPatch(typeof(LoadingMenu), nameof(LoadingMenu.OnConfirmLoadGamePressed))]
+	[HarmonyPatch(typeof(LoadingMenu), nameof(LoadingMenu.OnLoadGamePressed))]
+	[HarmonyPatch(typeof(LoadingMenu), nameof(LoadingMenu.OnQuickLoadPressed))]
+	public static bool PreOnConfirmLoadGamePressed(LoadingMenu __instance) {
+		if (string.IsNullOrEmpty(ServerConfig.lobbyName) || string.IsNullOrEmpty(ServerConfig.lobbyMaxPlayers)) {
+			MMLog.LogWarning("preventing load game because either lobby name or max players is empty!");
+			return false;
+		}
+
+		return true;
 	}
 
 	[HarmonyPostfix]
 	[HarmonyPatch(typeof(LoadingMenu), "OnDisable")]
 	public static void PostOnDisable(LoadingMenu __instance) {
 		ServerConfig.Reset();
-		ServerConfig.DisableUI();
 	}
 }

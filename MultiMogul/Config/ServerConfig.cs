@@ -15,6 +15,10 @@ public static class ServerConfig {
 	public static TMP_InputField passwordInput = null;
 	public static TMP_InputField maxPlayerInput = null;
 
+	public static string lobbyName = string.Empty;
+	public static string lobbyPassword = string.Empty;
+	public static string lobbyMaxPlayers = string.Empty;
+
 	private static bool isUIInitialized = false;
 
 	public static void InitializeUI() {
@@ -27,33 +31,36 @@ public static class ServerConfig {
 		}
 
 		ReflectionField<TMP_InputField> newSaveFileNameInputField = ReflectionHelper.GetField<TMP_InputField>(newGameMenu, "_newSaveFileNameInputField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-		if (!nameInput) {
-			nameInput = UIHelper.CreateInputFieldFromInstance(newSaveFileNameInputField, "LobbyNameTextInput", "", "Lobby name: 'MMTestLobby'");
+		if (nameInput == null) {
+			nameInput = UIHelper.CreateInputFieldFromInstance(newSaveFileNameInputField, "LobbyNameTextInput", string.Empty, "lobby name");
+			nameInput.onValueChanged.AddListener(value => lobbyName = value);
 		}
 
-		if (!passwordInput) {
-			passwordInput = UIHelper.CreateInputFieldFromInstance(newSaveFileNameInputField, "LobbyPasswordTextInput", "", "Lobby password: '123'", ContentType.Password);
+		if (passwordInput == null) {
+			passwordInput = UIHelper.CreateInputFieldFromInstance(newSaveFileNameInputField, "LobbyPasswordTextInput", string.Empty, "lobby password", ContentType.Password);
+			passwordInput.onValueChanged.AddListener(value => lobbyPassword = value);
 		}
 
-		if (!maxPlayerInput) {
-			maxPlayerInput = UIHelper.CreateInputFieldFromInstance(newSaveFileNameInputField, "LobbyMaxPlayersTextInput", "", "Lobby max players: '8'", ContentType.IntegerNumber);
+		if (maxPlayerInput == null) {
+			maxPlayerInput = UIHelper.CreateInputFieldFromInstance(newSaveFileNameInputField, "LobbyMaxPlayersTextInput", string.Empty, "max players", ContentType.IntegerNumber);
+			maxPlayerInput.onValueChanged.AddListener(value => lobbyMaxPlayers = value);
 		}
 
 		isUIInitialized = true;
 	}
 
 	public static void SetInputSize(Vector2 size) {
-		RectTransform rectTransform = nameInput.GetComponent<RectTransform>();
+		RectTransform rectTransform = nameInput?.GetComponent<RectTransform>();
 		if (rectTransform != null) {
 			rectTransform.sizeDelta = size;
 		}
 
-		rectTransform = passwordInput.GetComponent<RectTransform>();
+		rectTransform = passwordInput?.GetComponent<RectTransform>();
 		if (rectTransform != null) {
 			rectTransform.sizeDelta = size;
 		}
 
-		rectTransform = maxPlayerInput.GetComponent<RectTransform>();
+		rectTransform = maxPlayerInput?.GetComponent<RectTransform>();
 		if (rectTransform != null) {
 			rectTransform.sizeDelta = size;
 		}
@@ -63,34 +70,31 @@ public static class ServerConfig {
 		if (!isUIInitialized)
 			return;
 
-		if (nameInput) {
-			nameInput.transform.SetParent(parent);
-		}
-
-		if (passwordInput) {
-			passwordInput.transform.SetParent(parent);
-		}
-
-		if (maxPlayerInput) {
-			maxPlayerInput.transform.SetParent(parent);
-		}
-	}
-
-	public static void EnableUI() {
-		nameInput.gameObject.SetActive(true);
-		passwordInput.gameObject.SetActive(true);
-		maxPlayerInput.gameObject.SetActive(true);
-	}
-
-	public static void DisableUI() {
-		nameInput.gameObject.SetActive(false);
-		passwordInput.gameObject.SetActive(false);
-		maxPlayerInput.gameObject.SetActive(false);
+		nameInput?.transform?.SetParent(parent);
+		passwordInput?.transform?.SetParent(parent);
+		maxPlayerInput?.transform?.SetParent(parent);
 	}
 
 	public static void Reset() {
-		nameInput.text = "";
-		passwordInput.text = "";
-		maxPlayerInput.text = "";
+		if (nameInput != null) {
+			nameInput.text = string.Empty; // trigger our OnValueChanged callback
+
+			Object.Destroy(nameInput.gameObject);
+			nameInput = null;
+		}
+
+		if (passwordInput != null) {
+			passwordInput.text = string.Empty; // trigger our OnValueChanged callback
+
+			Object.Destroy(passwordInput.gameObject);
+			passwordInput = null;
+		}
+
+		if (maxPlayerInput != null) {
+			maxPlayerInput.text = string.Empty; // trigger our OnValueChanged callback
+
+			Object.Destroy(maxPlayerInput.gameObject);
+			maxPlayerInput = null;
+		}
 	}
 }

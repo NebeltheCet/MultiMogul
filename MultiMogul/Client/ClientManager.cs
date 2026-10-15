@@ -12,11 +12,22 @@ using UnityEngine;
 
 namespace MultiMogul.Client;
 
+using SaveManager = SaveManager.SaveManager;
+
 public class ClientManager : MonoBehaviour {
 	private ConnectionManager _clientConnection;
 
 	public SteamId currentServerId = 0;
-	public string currentServerPassword = "";
+	public string currentServerPassword = string.Empty;
+	
+	private bool _isConnected = false;
+
+	public static bool IsConnected() {
+		if (MultiMogulBase.clientManager == null)
+			return false;
+
+		return MultiMogulBase.clientManager._isConnected;
+	}
 
 	// initialize the ClientManager object
 	public static void Init() {
@@ -75,7 +86,12 @@ public class ClientManager : MonoBehaviour {
 			return;
 		}
 
-		MMLog.Log($"received response: {connectionResponse.responseCode}");
+		if (connectionResponse.responseCode != ConnectionResponseCode.Success) {
+			MMLog.LogWarning($"received unsuccessful response: {connectionResponse.responseCode}");
+			return;
+		}
+
+		MultiMogulBase.clientManager._isConnected = true;
 	}
 
 	private void OnGameLobbyJoinRequested(Lobby lobby, SteamId friendId) {
@@ -131,6 +147,8 @@ public class ClientManager : MonoBehaviour {
 		this._clientConnection = null;
 
 		MMLog.Log($"client disconnected[{reason}]");
+
+		this._isConnected = false;
 	}
 
 	private class ClientConnection : ConnectionManager {

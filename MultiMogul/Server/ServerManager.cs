@@ -6,11 +6,12 @@ using Steamworks.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Sockets;
 using System.Reflection;
 using UnityEngine;
 
 namespace MultiMogul.Server;
+
+using SaveManager = SaveManager.SaveManager;
 
 public class ServerManager : MonoBehaviour {
 	public Dictionary<Connection, ConnectionData> connectedClients = [];
@@ -21,7 +22,7 @@ public class ServerManager : MonoBehaviour {
 
 	[Header("Server Defaults")]
 	public string serverName = "My Server";
-	public string serverPassword = "";
+	public string serverPassword = string.Empty;
 	public int maxPlayers = 8;
 
 	public const int MaxPacketsPerSecond = 200;
@@ -31,6 +32,13 @@ public class ServerManager : MonoBehaviour {
 		Public = 2,
 		Invisible = 3,
 		PrivateUnique = 4,
+	}
+
+	public static bool IsHosting() {
+		if (MultiMogulBase.serverManager == null)
+			return false;
+
+		return MultiMogulBase.serverManager.currentLobby.Id != 0;
 	}
 
 	// initialize the ServerManager object

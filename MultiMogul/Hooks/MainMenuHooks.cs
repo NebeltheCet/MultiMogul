@@ -1,5 +1,7 @@
 ﻿using HarmonyLib;
+using MultiMogul.Client;
 using MultiMogul.Config;
+using MultiMogul.Server;
 using MultiMogul.Utilities;
 using System;
 using System.Collections.Generic;
@@ -18,15 +20,15 @@ public class MainMenuHooks {
 		if (hasStartedElevatorAnimation.Value)
 			return;
 
-		if (!ServerConfig.nameInput || !ServerConfig.maxPlayerInput)
+		if (ClientManager.IsConnected())
+			return; // prevent clients from starting a server while loading in.
+
+		if (string.IsNullOrEmpty(ServerConfig.lobbyName) || string.IsNullOrEmpty(ServerConfig.lobbyMaxPlayers))
 			return;
 
-		if (string.IsNullOrEmpty(ServerConfig.nameInput.text) || string.IsNullOrEmpty(ServerConfig.maxPlayerInput.text))
-			return;
-
-		string serverName = ServerConfig.nameInput.text;
-		string serverPassword = ServerConfig.passwordInput.text;
-		if (!int.TryParse(ServerConfig.maxPlayerInput.text, out int serverMaxPlayers)) {
+		string serverName = ServerConfig.lobbyName;
+		string serverPassword = ServerConfig.lobbyPassword;
+		if (!int.TryParse(ServerConfig.lobbyMaxPlayers, out int serverMaxPlayers)) {
 			MMLog.LogException("failed to parse max players input field");
 		}
 

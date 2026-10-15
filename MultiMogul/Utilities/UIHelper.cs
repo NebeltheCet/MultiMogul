@@ -1,20 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.Localization.Components;
 using static TMPro.TMP_InputField;
 
 namespace MultiMogul.Utilities;
 
+// NOTE: MineMogul developers hinted at a new UI System soon, we may have to abstract this a bit to support future updates.
 public class UIHelper {
 	public static TMP_InputField CreateInputFieldFromInstance(TMP_InputField instance, string name, string text, string hint, ContentType contentType = ContentType.Standard) {
-		TMP_InputField newInput = UnityEngine.Object.Instantiate(instance);
+		TMP_InputField newInput = Object.Instantiate(instance);
+		Object.DontDestroyOnLoad(newInput);
+
 		newInput.name = name;
 		newInput.text = text;
 

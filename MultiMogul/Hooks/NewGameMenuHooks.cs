@@ -1,10 +1,7 @@
 ﻿using HarmonyLib;
 using MultiMogul.Config;
-using MultiMogul.Utilities;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using static TMPro.TMP_InputField;
 
 namespace MultiMogul.Hooks;
 
@@ -32,18 +29,14 @@ public class NewGameMenuHooks {
 		if (rectTransform != null) {
 			rectTransform.anchoredPosition = new Vector2(-300, -215);
 		}
-
-		ServerConfig.EnableUI();
 	}
-
 
 	[HarmonyPostfix]
 	[HarmonyPatch(typeof(NewGameMenu), "Update")]
 	public static void PostUpdate(NewGameMenu __instance) {
 		ReflectionField<Button> confirmNewGameButton = ReflectionHelper.GetField<Button>(__instance, "_confirmNewGameButton", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-		if (string.IsNullOrEmpty(ServerConfig.nameInput.text) || string.IsNullOrEmpty(ServerConfig.maxPlayerInput.text)) {
+		if (string.IsNullOrEmpty(ServerConfig.lobbyName) || string.IsNullOrEmpty(ServerConfig.lobbyMaxPlayers)) {
 			confirmNewGameButton.Value.interactable = false;
-			confirmNewGameButton.Value.enabled = false;
 			return;
 		}
 
@@ -54,6 +47,5 @@ public class NewGameMenuHooks {
 	[HarmonyPatch(typeof(NewGameMenu), "OnDisable")]
 	public static void PostOnDisable(NewGameMenu __instance) {
 		ServerConfig.Reset();
-		ServerConfig.DisableUI();
 	}
 }

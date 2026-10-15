@@ -61,7 +61,7 @@ public class RawPacket : IDisposable {
 		RegisterHandler<double>((p, v) => p._writer.Write((double)v), p => p._reader.ReadDouble());
 		RegisterHandler<bool>((p, v) => p._writer.Write((bool)v), p => p._reader.ReadBoolean());
 		RegisterHandler<string>((p, v) => {
-			var bytes = Encoding.UTF8.GetBytes((string)v ?? "");
+			var bytes = Encoding.UTF8.GetBytes((string)v ?? string.Empty);
 
 			p._writer.Write(bytes.Length);
 			p._writer.Write(bytes);
