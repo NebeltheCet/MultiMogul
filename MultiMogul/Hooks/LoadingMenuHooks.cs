@@ -25,7 +25,6 @@ public class LoadingMenuHooks {
 			return;
 
 		ReflectionField<TMP_InputField> newSaveFileNameInputField = ReflectionHelper.GetField<TMP_InputField>(newGameMenu, "_newSaveFileNameInputField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
 		if (!nameInput) {
 			nameInput = UIHelper.CreateInputFieldFromInstance(newSaveFileNameInputField, __instance.transform, "LobbyNameTextInput", new Vector2(-525, -600), new Vector2(220, 35), "", "Lobby name: 'MMTestLobby'");
 		}
@@ -37,10 +36,6 @@ public class LoadingMenuHooks {
 		if (!maxPlayerInput) {
 			maxPlayerInput = UIHelper.CreateInputFieldFromInstance(newSaveFileNameInputField, __instance.transform, "LobbyMaxPlayersTextInput", new Vector2(-525, -680), new Vector2(220, 35), "", "Lobby max players: '8'", ContentType.IntegerNumber);
 		}
-
-		nameInput.text = "";
-		passwordInput.text = "";
-		maxPlayerInput.text = "";
 	}
 
 	[HarmonyPostfix]
