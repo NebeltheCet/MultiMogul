@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace MultiMogul.Hooks;
 
 [HarmonyPatch]
-public class NewGameMenuHooks {
+public static class NewGameMenuHooks {
 	[HarmonyPostfix]
 	[HarmonyPatch(typeof(NewGameMenu), "OnEnable")]
 	public static void PostOnEnable(NewGameMenu __instance) {

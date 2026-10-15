@@ -7,7 +7,7 @@ using UnityEngine.UI;
 namespace MultiMogul.Hooks;
 
 [HarmonyPatch]
-public class LoadingMenuHooks {
+public static class LoadingMenuHooks {
 	[HarmonyPostfix]
 	[HarmonyPatch(typeof(LoadingMenu), "OnEnable")]
 	public static void PostOnEnable(LoadingMenu __instance) {

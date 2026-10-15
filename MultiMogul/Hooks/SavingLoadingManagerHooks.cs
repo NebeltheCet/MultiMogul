@@ -11,6 +11,7 @@ using SaveManager = SaveManager.SaveManager;
 
 [HarmonyPatch]
 public class SavingLoadingManagerHooks {
+public static class SavingLoadingManagerHooks {
 	public static string lastSaveJsonData = string.Empty;
 
 	[HarmonyPostfix]

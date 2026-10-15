@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace MultiMogul.Hooks;
 
 [HarmonyPatch]
-public class MainMenuHooks {
+public static class MainMenuHooks {
 	[HarmonyPrefix]
 	[HarmonyPatch(typeof(MainMenu), nameof(MainMenu.PlayElevatorLowerAnimation))]
 	public static void PrePlayElevatorLowerAnimation(MainMenu __instance) {
