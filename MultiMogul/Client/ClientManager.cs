@@ -1,4 +1,5 @@
-﻿using MultiMogul.Networking;
+﻿using MultiMogul.Entities;
+using MultiMogul.Networking;
 using MultiMogul.Networking.Packets;
 using MultiMogul.Server;
 using MultiMogul.Steam;
@@ -19,7 +20,7 @@ public class ClientManager : MonoBehaviour {
 
 	public SteamId currentServerId = 0;
 	public string currentServerPassword = string.Empty;
-	
+
 	private bool _isConnected = false;
 
 	public static bool IsConnected() {
@@ -91,7 +92,13 @@ public class ClientManager : MonoBehaviour {
 			return;
 		}
 
-		MultiMogulBase.clientManager.StartCoroutine(SaveManager.LoadSaveFromJson(connectionResponse.sceneName, connectionResponse.worldData, connectionResponse.gameMode));
+		CoroutineTask loadSaveTask = new CoroutineTask(MultiMogulBase.clientManager);
+		loadSaveTask.Start(
+			SaveManager.LoadSaveFromJson(connectionResponse.sceneName, connectionResponse.worldData, connectionResponse.gameMode),
+			() => {
+				Player.CreatePlayerList(connectionResponse.playerData);
+			});
+
 		MultiMogulBase.clientManager._isConnected = true;
 	}
 

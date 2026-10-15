@@ -1,5 +1,9 @@
 ﻿using HarmonyLib;
+using MultiMogul.Entities;
+using MultiMogul.Networking.Packets;
 using MultiMogul.Server;
+using Steamworks;
+using UnityEngine;
 
 namespace MultiMogul.Hooks;
 using SaveManager = SaveManager.SaveManager;
@@ -27,5 +31,18 @@ public class SavingLoadingManagerHooks {
 			return; // prevent clients from running this code.
 
 		lastSaveJsonData = json;
+	}
+
+	[HarmonyPostfix]
+	[HarmonyPatch(typeof(SavingLoadingManager), nameof(SavingLoadingManager.LoadGame))]
+	public static void PostLoadGame(SavingLoadingManager __instance, string fullFilePath) {
+		PlayerController playerController = Object.FindFirstObjectByType<PlayerController>();
+
+		// create the host local player
+		Player.CreatePlayer(new PlayerDataResponse {
+			steamId = SteamClient.SteamId.Value,
+			position = playerController.transform.position,
+			rotation = playerController.transform.rotation
+		});
 	}
 }

@@ -1,4 +1,5 @@
-﻿using MultiMogul.Networking;
+﻿using MultiMogul.Entities;
+using MultiMogul.Networking;
 using MultiMogul.Networking.Packets;
 using MultiMogul.Utilities;
 using Steamworks;
@@ -113,9 +114,26 @@ public class ServerManager : MonoBehaviour {
 			responseCode = ConnectionResponseCode.InvalidPassword;
 		}
 
+		List<PlayerDataResponse> playerDataResponses = [];
 		string saveData = string.Empty;
 		if (responseCode == ConnectionResponseCode.Success) {
 			saveData = SaveManager.GetCurrentSave(); // don't network the save when the connection wasn't successful!
+
+			Player.CreatePlayer(new PlayerDataResponse {
+				steamId = userInformation.steamId,
+				position = PlayerSpawnPoint.GetRandomPlayerSpawnPoint().transform.position, // TODO: this has to be replaced with save data!
+				rotation = Quaternion.identity
+			});
+
+			// TODO: send a packet to every connected player(other than current) with the created player!
+
+			foreach (Player player in Player.ActivePlayers) {
+				playerDataResponses.Add(new PlayerDataResponse {
+					steamId = player.SteamId,
+					position = player.transform.position,
+					rotation = player.transform.rotation,
+				});
+			}
 		}
 
 		connectionData.steamId = userInformation.steamId;
@@ -123,7 +141,8 @@ public class ServerManager : MonoBehaviour {
 			responseCode = responseCode,
 			gameMode = Singleton<GamemodeManager>.Instance.GameModeType,
 			sceneName = SaveManager.GetCurrentSceneName(),
-			worldData = saveData
+			worldData = saveData,
+			playerData = playerDataResponses
 		}, connectionData.connection, SendType.Reliable);
 	}
 

@@ -165,21 +165,50 @@ public class RawPacket : IDisposable {
 		}
 
 		Type type = typeof(T);
-		if (type.IsEnum) {
-			var underlying = Enum.GetUnderlyingType(type);
-			if (!_enumHandlers.TryGetValue(underlying, out var writer)) {
-				MMLog.LogException($"unsupported enum underlying type: {underlying}");
-			}
+		if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>)) {
+			Type elementType = type.GetGenericArguments()[0];
+			var method = typeof(RawPacket)
+				.GetMethod(nameof(WriteList), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+				.MakeGenericMethod(elementType);
 
-			writer(this, value); // call the delegate
+			method.Invoke(this, [value]);
 			return;
 		}
 
-		if (!_writeHandlers.TryGetValue(type, out var handler)) {
-			MMLog.LogException($"no write handler for type {type}", LogTypes.Packets);
+		if (type.IsEnum) {
+			Type underlyingType = Enum.GetUnderlyingType(type);
+			if (!_enumHandlers.TryGetValue(underlyingType, out var writer)) {
+				MMLog.LogException($"unsupported enum underlying type: {underlyingType}", LogTypes.Packets);
+			}
+
+			writer(this, Convert.ChangeType(value, underlyingType));
+			return;
 		}
 
-		handler(this, value);
+		if (_writeHandlers.TryGetValue(type, out var handler)) {
+			handler(this, value);
+			return;
+		}
+
+		var customWrite = type.GetMethod("Write", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance, binder: null, types: [typeof(RawPacket)], modifiers: null);
+		if (customWrite != null &&
+			customWrite.ReturnType == typeof(void)) {
+			customWrite.Invoke(value, [this]);
+			return;
+		}
+
+		MMLog.LogException($"no write handler or custom Write method for type {type}", LogTypes.Packets);
+	}
+
+	private void WriteList<T>(List<T> values) {
+		this.Write<int>(values?.Count ?? 0);
+		if (values == null) {
+			return;
+		}
+
+		foreach (T element in values) {
+			this.Write<T>(element);
+		}
 	}
 	#endregion
 
@@ -187,20 +216,52 @@ public class RawPacket : IDisposable {
 	// generic read
 	public T Read<T>() {
 		Type type = typeof(T);
+		if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>)) {
+			Type elementType = type.GetGenericArguments()[0];
+			var method = typeof(RawPacket)
+				.GetMethod(nameof(ReadList))
+				.MakeGenericMethod(elementType);
+
+			return (T)method.Invoke(this, null);
+		}
+
+
 		if (type.IsEnum) {
-			Type baseType = Enum.GetUnderlyingType(type);
-			var enumValue = typeof(RawPacket).GetMethod(nameof(Read))
-						.MakeGenericMethod(baseType)
-						.Invoke(this, null);
+			Type underlyingType = Enum.GetUnderlyingType(type);
+			var method = typeof(RawPacket)
+						.GetMethod(nameof(Read))
+						.MakeGenericMethod(underlyingType);
 
-			return (T)enumValue;
+			object value = method.Invoke(this, null);
+			return (T)Enum.ToObject(type, value);
 		}
 
-		if (!_readHandlers.TryGetValue(type, out var handler)) {
-			MMLog.LogException($"no read handler for type {type}", LogTypes.Packets);
+		if (_readHandlers.TryGetValue(type, out var handler)) {
+			return (T)handler(this);
 		}
 
-		return (T)handler(this);
+		var customRead = type.GetMethod("Read", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static, binder: null, types: [typeof(RawPacket)], modifiers: null);
+		if (customRead != null && type.IsAssignableFrom(customRead.ReturnType)) {
+			return (T)customRead.Invoke(null, [this]);
+		}
+
+		MMLog.LogException($"no read handler or custom read method for type {type}", LogTypes.Packets);
+		return default;
+	}
+
+	public List<T> ReadList<T>() {
+		int count = this.Read<int>();
+		if (count < 0 || count > 100_000) {
+			MMLog.LogException($"invalid list size: {count}", LogTypes.Packets);
+			return [];
+		}
+
+		var values = new List<T>(count);
+		for (int i = 0; i < count; i++) {
+			values.Add(this.Read<T>());
+		}
+
+		return values;
 	}
 	#endregion
 
