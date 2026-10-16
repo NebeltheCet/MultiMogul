@@ -7,7 +7,6 @@ using Steamworks;
 using Steamworks.Data;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 namespace MultiMogul.Entities;
 public class Player : MonoBehaviour {
@@ -55,18 +54,22 @@ public class Player : MonoBehaviour {
 		MMLog.Log($"created player prefab", LogTypes.ControlFlow);
 	}
 
-	public static void CreatePlayer(PlayerDataResponse entry) {
+	public static void CreatePlayer(PlayerReplicationData entry) {
 		CreatePlayerPrefab();
 
 		if (playerPrefab == null) {
 			MMLog.LogException("invalid player prefab even after creating it, notify the developers!");
+		}
+
+		Player existingEntry = activePlayers.Find(x => x.SteamId.Value == entry.steamId);
+		if (existingEntry != null) {
+			MMLog.LogWarning("a replicated player already existed, possible bug!");
 			return;
 		}
 
 		GameObject playerObject = Instantiate(playerPrefab, entry.position, entry.rotation);
 		if (playerObject == null) {
 			MMLog.LogException("a player object failed to instantiate, notify the developers!");
-			return;
 		}
 
 		playerObject.name = $"Player_{entry.steamId}";
@@ -75,7 +78,6 @@ public class Player : MonoBehaviour {
 		Player playerComponent = playerObject.GetComponent<Player>();
 		if (playerComponent == null) {
 			MMLog.LogException("the player prefab didn't instantiate properly, notify the developers!");
-			return;
 		}
 
 		Friend friend = new Friend(entry.steamId);
@@ -106,13 +108,13 @@ public class Player : MonoBehaviour {
 	}
 
 	// this function is specifically called by clients to initialize the base player list.
-	public static void CreatePlayerList(List<PlayerDataResponse> list) {
+	public static void CreatePlayerList(List<PlayerReplicationData> list) {
 		if (list.Count <= 0) {
 			MMLog.LogWarning("skipped player list initialization, because no entries were present.");
 			return;
 		}
 
-		foreach (PlayerDataResponse entry in list) {
+		foreach (PlayerReplicationData entry in list) {
 			CreatePlayer(entry);
 		}
 	}
@@ -167,15 +169,36 @@ public class Player : MonoBehaviour {
 	}
 
 	#region Packets
+	[Networkable(PacketType.OnPlayerReplication, uint.MaxValue, 4, false)]
+	public static void OnPlayerReplication(ConnectionManager localConnection, RawPacket receivedPacket) {
+		MMLog.Log("received player replication", LogTypes.ControlFlow);
+		OnPlayerReplication playerReplication = receivedPacket.Read<OnPlayerReplication>();
+		if (playerReplication == null) {
+			MMLog.LogWarning("received invalid player replication packet");
+			return;
+		}
+
+		System.Action action = () => {
+			Player.CreatePlayerList(playerReplication.playerReplications);
+		};
+
+		if (!ClientManager.loadSaveTask.IsCompleted) {
+			ClientManager.loadSaveTask.AddCompletionCallback(action);
+		}
+		else {
+			action();
+		}
+	}
+
 	[Networkable(PacketType.OnRPCMessage, "OnPlayerTick", 64, (uint)(1f / TICK_INTERVAL) * 2, true)]
 	public static void SV_OnPlayerTick(ConnectionData connectionData, RawPacket receivedPacket) {
-		MMLog.Log("received player tick", LogTypes.ControlFlow);
+		//MMLog.Log("received player tick", LogTypes.ControlFlow);
 		if (connectionData == null) {
 			MMLog.LogWarning("received player tick from invalid connected client");
 			connectionData.connection.Close(true, 0, "Invalid Connection");
 			return;
 		}
-
+		
 		OnPlayerTick playerTick = receivedPacket.Read<OnPlayerTick>();
 		if (playerTick == null) {
 			MMLog.LogWarning("received invalid player tick packet");

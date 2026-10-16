@@ -1,7 +1,9 @@
 ﻿using MultiMogul.Entities;
+using MultiMogul.Hooks;
 using MultiMogul.Networking;
 using MultiMogul.Networking.Packets;
 using MultiMogul.Utilities;
+using MultiMogul.Utilities.NetworkedObjects;
 using Steamworks;
 using Steamworks.Data;
 using System;
@@ -114,26 +116,9 @@ public class ServerManager : MonoBehaviour {
 			responseCode = ConnectionResponseCode.InvalidPassword;
 		}
 
-		List<PlayerDataResponse> playerDataResponses = [];
 		string saveData = string.Empty;
 		if (responseCode == ConnectionResponseCode.Success) {
 			saveData = SaveManager.GetCurrentSave(); // don't network the save when the connection wasn't successful!
-
-			Player.CreatePlayer(new PlayerDataResponse {
-				steamId = userInformation.steamId,
-				position = PlayerSpawnPoint.GetRandomPlayerSpawnPoint().transform.position, // TODO: this has to be replaced with save data!
-				rotation = Quaternion.identity
-			});
-
-			// TODO: send a packet to every connected player(other than current) with the created player!
-
-			foreach (Player player in Player.activePlayers) {
-				playerDataResponses.Add(new PlayerDataResponse {
-					steamId = player.SteamId,
-					position = player.transform.position,
-					rotation = player.transform.rotation,
-				});
-			}
 		}
 
 		connectionData.steamId = userInformation.steamId;
@@ -141,9 +126,45 @@ public class ServerManager : MonoBehaviour {
 			responseCode = responseCode,
 			gameMode = Singleton<GamemodeManager>.Instance.GameModeType,
 			sceneName = SaveManager.GetCurrentSceneName(),
-			worldData = saveData,
-			playerData = playerDataResponses
+			worldData = saveData
 		}, connectionData.connection, SendType.Reliable);
+
+		if (responseCode == ConnectionResponseCode.Success) { // send over the player information
+			Vector3 chosenSpawnpoint = PlayerSpawnPoint.GetRandomPlayerSpawnPoint().transform.position; // TODO: this has to be replaced with save data!
+			Player.CreatePlayer(new PlayerReplicationData {
+				steamId = userInformation.steamId,
+				position = chosenSpawnpoint,
+				rotation = Quaternion.identity
+			});
+
+			List<PlayerReplicationData> players = [];
+			foreach (Player player in Player.activePlayers) {
+				players.Add(new PlayerReplicationData {
+					steamId = player.SteamId,
+					position = player.transform.position,
+					rotation = player.transform.rotation,
+				});
+			}
+
+			RawPacket.Send(new OnPlayerReplication {
+				playerReplications = players,
+			}, connectionData.connection, SendType.Reliable);
+
+			// replicate the player to all other clients
+			foreach (var client in MultiMogulBase.serverManager.connectedClients) {
+				if (client.Key == connectionData.connection)
+					continue; // skip current
+
+				RawPacket.Send(new OnPlayerReplication {
+					playerReplications = [
+						new PlayerReplicationData {
+							steamId = userInformation.steamId,
+							position = chosenSpawnpoint,
+							rotation = Quaternion.identity
+					} ],
+				}, client.Key, SendType.Reliable);
+			}
+		}
 	}
 
 	public void StartServer(string serverName, string serverPassword = "", int maxPlayers = 8) {

@@ -12,6 +12,7 @@ public enum PacketType {
 	Invalid = 0,
 	OnUserInformationRequest,
 	OnConnectionResponse,
+	OnPlayerReplication,
 	OnRPCMessage
 }
 

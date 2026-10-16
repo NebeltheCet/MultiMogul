@@ -1,9 +1,11 @@
 ﻿using MultiMogul.Entities;
+using MultiMogul.Hooks;
 using MultiMogul.Networking;
 using MultiMogul.Networking.Packets;
 using MultiMogul.Server;
 using MultiMogul.Steam;
 using MultiMogul.Utilities;
+using MultiMogul.Utilities.NetworkedObjects;
 using Steamworks;
 using Steamworks.Data;
 using System;
@@ -16,6 +18,8 @@ namespace MultiMogul.Client;
 using SaveManager = SaveManager.SaveManager;
 
 public class ClientManager : MonoBehaviour {
+	public static CoroutineTask loadSaveTask = null; // a bit messy, but better this way.
+
 	private ConnectionManager _clientConnection = null;
 
 	public SteamId currentServerId = 0;
@@ -104,12 +108,8 @@ public class ClientManager : MonoBehaviour {
 			return;
 		}
 
-		CoroutineTask loadSaveTask = new CoroutineTask(MultiMogulBase.clientManager);
-		loadSaveTask.Start(
-			SaveManager.LoadSaveFromJson(connectionResponse.sceneName, connectionResponse.worldData, connectionResponse.gameMode),
-			() => {
-				Player.CreatePlayerList(connectionResponse.playerData);
-			});
+		loadSaveTask = new CoroutineTask(MultiMogulBase.clientManager);
+		loadSaveTask.Start(SaveManager.LoadSaveFromJson(connectionResponse.sceneName, connectionResponse.worldData, connectionResponse.gameMode));
 
 		MultiMogulBase.clientManager._isConnected = true;
 	}

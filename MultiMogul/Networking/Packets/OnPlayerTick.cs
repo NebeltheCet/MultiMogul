@@ -6,7 +6,7 @@ namespace MultiMogul.Networking.Packets;
 public class OnPlayerTick : RawPacket {
 	private const PacketType customType = PacketType.OnRPCMessage;
 
-	public OnPlayerTick() : base(customType, nameof(OnPlayerTick)) { }
+	public OnPlayerTick() : base(customType, nameof(OnPlayerTick), true) { }
 
 	// packet members
 	public ulong steamId = 0;

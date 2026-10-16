@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace MultiMogul.Utilities;
@@ -12,21 +13,27 @@ public class CoroutineTask {
 
 	private readonly MonoBehaviour runner;
 
+	private List<Action> _onCompleteCallbacks = [];
+
 	public CoroutineTask(MonoBehaviour runner) {
 		this.runner = runner;
 	}
 
-	public void Start(IEnumerator routine, Action onComplete = null) {
+	public void AddCompletionCallback(Action action) {
+		this._onCompleteCallbacks.Add(action);
+	}
+
+	public void Start(IEnumerator routine) {
 		if (this.IsRunning)
 			throw new InvalidOperationException("this task is already running.");
 
 		this.IsRunning = true;
 		this.IsCompleted = false;
 
-		this.Coroutine = this.runner.StartCoroutine(this.Run(routine, onComplete));
+		this.Coroutine = this.runner.StartCoroutine(this.Run(routine));
 	}
 
-	private IEnumerator Run(IEnumerator routine, Action onComplete) {
+	private IEnumerator Run(IEnumerator routine) {
 		try {
 			yield return this.runner.StartCoroutine(routine);
 		}
@@ -36,6 +43,8 @@ public class CoroutineTask {
 			this.Coroutine = null;
 		}
 
-		onComplete?.Invoke();
+		foreach (Action action in this._onCompleteCallbacks) {
+			action.Invoke();
+		}
 	}
 }
