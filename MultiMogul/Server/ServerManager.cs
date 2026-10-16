@@ -1,12 +1,10 @@
 ﻿using MultiMogul.Entities;
-using MultiMogul.Hooks;
 using MultiMogul.Networking;
 using MultiMogul.Networking.Packets;
 using MultiMogul.Utilities;
 using MultiMogul.Utilities.NetworkedObjects;
 using Steamworks;
 using Steamworks.Data;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -119,6 +117,7 @@ public class ServerManager : MonoBehaviour {
 		string saveData = string.Empty;
 		if (responseCode == ConnectionResponseCode.Success) {
 			saveData = SaveManager.GetCurrentSave(); // don't network the save when the connection wasn't successful!
+			saveData = SaveManager.CleanOreEntriesFromSave(saveData);
 		}
 
 		connectionData.steamId = userInformation.steamId;
@@ -164,6 +163,29 @@ public class ServerManager : MonoBehaviour {
 					} ],
 				}, client.Key, SendType.Reliable);
 			}
+
+			// send a ore replication to the new client
+			List<CustomOrePieceEntry> oreEntries = [];
+			foreach (OrePiece orePiece in Object.FindObjectsByType<OrePiece>(FindObjectsSortMode.None)) { // sorting is irrelevant
+				NetworkedObject networkedObject = NetworkedObjectRegistry.Register(orePiece);
+				CustomOrePieceEntry customOrePieceEntry = new CustomOrePieceEntry {
+					Position = orePiece.transform.position,
+					Rotation = orePiece.transform.rotation.eulerAngles,
+					Scale = orePiece.transform.localScale,
+					MeshID = orePiece.MeshID,
+					ResourceType = orePiece.ResourceType,
+					PieceType = orePiece.PieceType,
+					PolishedPercent = orePiece.PolishedPercent,
+
+					guid = networkedObject.guid
+				};
+
+				oreEntries.Add(customOrePieceEntry);
+			}
+
+			RawPacket.Send(new OnOreReplication {
+				orePieceEntries = oreEntries,
+			}, connectionData.connection, SendType.Reliable);
 		}
 	}
 
@@ -247,7 +269,7 @@ public class ServerManager : MonoBehaviour {
 		MMLog.Log($"created steam lobby: {SteamClient.SteamId}[{lobbyType.ToString().ToLower()}]", LogTypes.ControlFlow);
 	}
 
-	public void OnClientMessage(Connection connection, NetIdentity identity, IntPtr data, int size, long messageNum, long recvTime, int channel) {
+	public void OnClientMessage(Connection connection, NetIdentity identity, System.IntPtr data, int size, long messageNum, long recvTime, int channel) {
 		if (!this.connectedClients.ContainsKey(connection)) {
 			MMLog.LogWarning($"client with id [{connection.Id}] is not tracked as connected. closing connection");
 			connection.Close(true, 0, "Not Connected");

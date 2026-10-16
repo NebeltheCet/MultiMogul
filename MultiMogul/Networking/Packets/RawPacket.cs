@@ -13,6 +13,7 @@ public enum PacketType {
 	OnUserInformationRequest,
 	OnConnectionResponse,
 	OnPlayerReplication,
+	OnOreReplication,
 	OnRPCMessage
 }
 

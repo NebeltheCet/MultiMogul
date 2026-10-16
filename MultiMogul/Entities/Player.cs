@@ -168,6 +168,51 @@ public class Player : MonoBehaviour {
 		}
 	}
 
+	public static void DrawNametags() {
+		foreach (var player in activePlayers) {
+			if (player.IsLocalPlayer)
+				continue;
+
+			if (player == null)
+				continue;
+
+			Vector3 screenPos = Camera.main.WorldToScreenPoint(player.transform.position + new Vector3(0f, player.transform.localScale.y + 0.15f, 0f));
+			if (screenPos.z < 0f)
+				continue;
+
+			GUIStyle defaultStyle = new GUIStyle(GUI.skin.label);
+			defaultStyle.alignment = TextAnchor.UpperLeft;
+			defaultStyle.fontSize = 14;
+			defaultStyle.normal.textColor = UnityEngine.Color.white;
+			defaultStyle.fontStyle = FontStyle.Normal;
+
+			GUIStyle shadowStyle = new GUIStyle(GUI.skin.label);
+			shadowStyle.alignment = TextAnchor.UpperLeft;
+			shadowStyle.fontSize = 14;
+			shadowStyle.normal.textColor = UnityEngine.Color.black;
+			shadowStyle.fontStyle = FontStyle.Normal;
+
+			GUIContent content = new GUIContent(player.DisplayName);
+
+			Vector2 rectSize = defaultStyle.CalcSize(content);
+			Vector2 textPosition = new Vector2(screenPos.x - (rectSize.x / 2f), (Screen.height - screenPos.y) - (rectSize.y / 2f));
+
+			GUI.Label(new Rect(textPosition.x - 1f, textPosition.y - 1f, rectSize.x, rectSize.y), player.DisplayName, shadowStyle);
+			GUI.Label(new Rect(textPosition.x - 1f, textPosition.y + 1f, rectSize.x, rectSize.y), player.DisplayName, shadowStyle);
+			GUI.Label(new Rect(textPosition.x + 1f, textPosition.y + 1f, rectSize.x, rectSize.y), player.DisplayName, shadowStyle);
+			GUI.Label(new Rect(textPosition.x + 1f, textPosition.y - 1f, rectSize.x, rectSize.y), player.DisplayName, shadowStyle);
+
+			GUI.Label(new Rect(textPosition.x, textPosition.y, rectSize.x, rectSize.y), player.DisplayName, defaultStyle);
+		}
+	}
+
+	public void OnGUI() {
+		if (!this.IsLocalPlayer)
+			return; // we don't need to draw anything for other players!
+
+		DrawNametags();
+	}
+
 	#region Packets
 	[Networkable(PacketType.OnPlayerReplication, uint.MaxValue, 4, false)]
 	public static void OnPlayerReplication(ConnectionManager localConnection, RawPacket receivedPacket) {
@@ -198,7 +243,7 @@ public class Player : MonoBehaviour {
 			connectionData.connection.Close(true, 0, "Invalid Connection");
 			return;
 		}
-		
+
 		OnPlayerTick playerTick = receivedPacket.Read<OnPlayerTick>();
 		if (playerTick == null) {
 			MMLog.LogWarning("received invalid player tick packet");
@@ -227,7 +272,7 @@ public class Player : MonoBehaviour {
 	public static void CL_OnPlayerTick(ConnectionManager localConnection, RawPacket receivedPacket) {
 		MMLog.Log("received player tick", LogTypes.ControlFlow);
 		if (activePlayers.Count <= 0) { // our client is most likely still loading in.
-			//MMLog.LogWarning("discarded player tick, are we fully loaded in yet? (if this spams constantly contact the developers!)");
+										//MMLog.LogWarning("discarded player tick, are we fully loaded in yet? (if this spams constantly contact the developers!)");
 			return;
 		}
 

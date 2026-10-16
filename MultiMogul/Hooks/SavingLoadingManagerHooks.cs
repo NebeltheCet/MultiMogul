@@ -52,7 +52,7 @@ public static class SaveGuidShared {
 
 	public static void LoadFromSave(ISaveLoadableObject saveable, string data) {
 		if (TryUnwrap(data, out string guid, out string originalData) && saveable is Component component) {
-			MMLog.Log($"received custom guid entry for \"{(saveable as Component).name}\"");
+			MMLog.Log($"received custom guid entry for \"{(saveable as Component).name}\"", LogTypes.ControlFlow);
 			NetworkedObjectRegistry.Register(component, guid);
 			data = originalData;
 		}
@@ -116,7 +116,9 @@ public static class SavingLoadingManagerHooks {
 		if (!ServerManager.IsHosting())
 			return; // prevent clients from running this code.
 
-		lastSaveJsonData = json;
+		lastSaveJsonData = json; // TODO: clean out OrePiece entries, and communicate them to the client afterwards.
+								 // one way we could do that is by parsing the json data ourselves,
+								 // and then turning it back into json after clearing the OrePieces list.
 	}
 
 	[HarmonyPrefix]

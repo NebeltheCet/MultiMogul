@@ -14,6 +14,19 @@ public static class SaveManager {
 		return SavingLoadingManagerHooks.lastSaveJsonData;
 	}
 
+	public static string CleanOreEntriesFromSave(string saveData) {
+		SaveFile saveFile = JsonUtility.FromJson<SaveFile>(saveData);
+		if (saveFile == null) {
+			MMLog.LogException("failed to parse save data, assuming fatal error in save parsing, notify the developers!");
+		}
+
+		if (saveFile.OrePieces != null) {
+			saveFile.OrePieces.Clear(); // clear the list, we'll network this later manually.
+		}
+
+		return JsonUtility.ToJson(saveFile, true);
+	}
+
 	public static string GetCurrentSceneName() {
 		Scene currentScene = SceneManager.GetActiveScene();
 		return currentScene.name;

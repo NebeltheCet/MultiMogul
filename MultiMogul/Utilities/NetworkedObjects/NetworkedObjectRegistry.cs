@@ -26,11 +26,11 @@ public class NetworkedObjectRegistry {
 		networked.GenerateGUIDHash();
 
 		if (hashDictionary.TryGetValue(networked.GetHash(), out NetworkedObject other) && other != null && !ReferenceEquals(other, networked)) {
-			MMLog.LogWarning($"guid hash collision between \"{networked.name}\" and \"{other.name}\" (hash {networked.GetHash()}).");
+			MMLog.LogWarning($"guid hash collision between \"{networked.name}\" and \"{other.name}\" (hash {networked.GetHash()})");
 		}
 
 		hashDictionary[networked.GetHash()] = networked;
-		MMLog.Log($"added NetworkedObject component to \"{networked.name}\" with hash: {networked.GetHash()}");
+		MMLog.Log($"added NetworkedObject component to \"{networked.name}\" with hash: {networked.GetHash()}", LogTypes.ControlFlow | LogTypes.Debug);
 	}
 
 	private static string GenerateUniqueGUID() {
