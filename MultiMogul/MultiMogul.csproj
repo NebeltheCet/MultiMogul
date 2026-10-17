@@ -467,10 +467,22 @@
 
   <Import Project="Deploy.local.props" Condition="Exists('Deploy.local.props')" />
 
-  <Target Name="DeployPlugin" AfterTargets="Build">
-	<Copy SourceFiles="$(TargetPath)"
-		  DestinationFolder="$(DeployDir)"
-		  SkipUnchangedFiles="true"
-		  Condition="'$(DeployDir)' != '' and Exists('$(DeployDir)')" />
-  </Target>
+  <Import Project="Deploy.local.props" Condition="Exists('Deploy.local.props')" />
+
+<Target Name="DeployPlugin" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)"
+          DestinationFolder="$(DeployDir)"
+          SkipUnchangedFiles="true"
+          Condition="'$(DeployDir)' != '' and Exists('$(DeployDir)')" />
+
+    <ItemGroup>
+        <ExternalDlls Include="$(SolutionDir)ext\*.dll"
+                      Condition="'$(DeployDir)' != '' and Exists('$(DeployDir)')" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(ExternalDlls)"
+          DestinationFolder="$(DeployDir)"
+          SkipUnchangedFiles="true"
+          Condition="'$(DeployDir)' != '' and Exists('$(DeployDir)')" />
+</Target>
 </Project>
