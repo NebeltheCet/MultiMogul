@@ -467,8 +467,6 @@
 
   <Import Project="Deploy.local.props" Condition="Exists('Deploy.local.props')" />
 
-  <Import Project="Deploy.local.props" Condition="Exists('Deploy.local.props')" />
-
 <Target Name="DeployPlugin" AfterTargets="Build">
     <Copy SourceFiles="$(TargetPath)"
           DestinationFolder="$(DeployDir)"
