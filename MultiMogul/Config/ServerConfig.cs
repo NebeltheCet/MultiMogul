@@ -34,16 +34,22 @@ public static class ServerConfig {
 		if (nameInput == null) {
 			nameInput = UIHelper.CreateInputFieldFromInstance(newSaveFileNameInputField, "LobbyNameTextInput", string.Empty, "lobby name");
 			nameInput.onValueChanged.AddListener(value => lobbyName = value);
+
+			Object.DontDestroyOnLoad(nameInput);
 		}
 
 		if (passwordInput == null) {
 			passwordInput = UIHelper.CreateInputFieldFromInstance(newSaveFileNameInputField, "LobbyPasswordTextInput", string.Empty, "lobby password", ContentType.Password);
 			passwordInput.onValueChanged.AddListener(value => lobbyPassword = value);
+
+			Object.DontDestroyOnLoad(passwordInput);
 		}
 
 		if (maxPlayerInput == null) {
 			maxPlayerInput = UIHelper.CreateInputFieldFromInstance(newSaveFileNameInputField, "LobbyMaxPlayersTextInput", string.Empty, "max players", ContentType.IntegerNumber);
 			maxPlayerInput.onValueChanged.AddListener(value => lobbyMaxPlayers = value);
+
+			Object.DontDestroyOnLoad(maxPlayerInput);
 		}
 
 		isUIInitialized = true;
@@ -92,9 +98,11 @@ public static class ServerConfig {
 
 		if (maxPlayerInput != null) {
 			maxPlayerInput.text = string.Empty; // trigger our OnValueChanged callback
-
+			
 			Object.Destroy(maxPlayerInput.gameObject);
 			maxPlayerInput = null;
 		}
+
+		isUIInitialized = false;
 	}
 }

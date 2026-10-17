@@ -82,7 +82,7 @@ public class ClientManager : MonoBehaviour {
 		this._clientConnection?.Receive();
 	}
 
-	[Networkable(PacketType.OnUserInformationRequest, 32, 1, false)]
+	[Networkable(PacketType.OnUserInformationRequest, false)]
 	public static void OnUserInformationRequest(ConnectionManager localConnection, RawPacket receivedPacket) {
 		MMLog.Log("server requested user information.", LogTypes.ControlFlow);
 
@@ -93,7 +93,7 @@ public class ClientManager : MonoBehaviour {
 		}, localConnection.Connection, SendType.Reliable);
 	}
 
-	[Networkable(PacketType.OnConnectionResponse, uint.MaxValue, 1, false)]
+	[Networkable(PacketType.OnConnectionResponse, false)]
 	public static void OnConnectionResponse(ConnectionManager localConnection, RawPacket receivedPacket) {
 		MMLog.Log("received connection response", LogTypes.ControlFlow);
 
@@ -162,7 +162,20 @@ public class ClientManager : MonoBehaviour {
 		}
 	}
 
-	public void Disconnect(string reason) {
+	public void Disconnect(string reason, bool calledFromExit = false) {
+		foreach (Player player in Player.activePlayers) {
+			UnityEngine.Object.Destroy(player.gameObject);
+		}
+
+		if (!calledFromExit) { // return back to main menu:
+			PauseMenu pauseMenu = UnityEngine.Object.FindFirstObjectByType<PauseMenu>();
+			if (pauseMenu != null) {
+				PauseMenuHooks.ignoreHook = true;
+				pauseMenu.OnReturnToMainMenuPressed();
+				PauseMenuHooks.ignoreHook = false;
+			}
+		}
+
 		this._clientConnection?.Close();
 		this._clientConnection = null;
 
@@ -173,7 +186,9 @@ public class ClientManager : MonoBehaviour {
 
 	private class ClientConnection : ConnectionManager {
 		public override void OnDisconnected(ConnectionInfo info) {
-			MultiMogulBase.clientManager.Disconnect("client was disconnected");
+			if (ClientManager.IsConnected()) {
+				MultiMogulBase.clientManager.Disconnect("client was disconnected");
+			}
 		}
 
 		public override void OnMessage(IntPtr data, int size, long messageNum, long recvTime, int channel) {

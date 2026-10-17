@@ -52,6 +52,26 @@ public class CustomOrePieceEntry {
 	}
 }
 
+public class CustomOreNodeEntry {
+	public Vector3 Position;
+
+	public string guid;
+
+	public static CustomOreNodeEntry Read(RawPacket packet) {
+		return new CustomOreNodeEntry {
+			Position = packet.Read<Vector3>(),
+
+			guid = packet.Read<string>()
+		};
+	}
+
+	public void Write(RawPacket packet) {
+		packet.Write(this.Position);
+
+		packet.Write(this.guid);
+	}
+}
+
 public class OnOreReplication : RawPacket {
 	private const PacketType customType = PacketType.OnOreReplication;
 
@@ -59,6 +79,8 @@ public class OnOreReplication : RawPacket {
 
 	// packet members
 	public List<CustomOrePieceEntry> orePieceEntries = [];
+	public List<CustomOreNodeEntry> oreNodeEntries = [];
+	public List<Vector3> destroyedStaticBreakablePositions = [];
 
 	// packet type handler register
 	static OnOreReplication() {
@@ -66,9 +88,13 @@ public class OnOreReplication : RawPacket {
 			var q = (OnOreReplication)v;
 
 			p.Write(q.orePieceEntries);
+			p.Write(q.oreNodeEntries);
+			p.Write(q.destroyedStaticBreakablePositions);
 
 		}, p => new OnOreReplication {
-			orePieceEntries = p.Read<List<CustomOrePieceEntry>>()
+			orePieceEntries = p.Read<List<CustomOrePieceEntry>>(),
+			oreNodeEntries = p.Read<List<CustomOreNodeEntry>>(),
+			destroyedStaticBreakablePositions = p.Read<List<Vector3>>()
 		});
 	}
 

@@ -25,6 +25,28 @@ public class Networkable : Attribute {
 		this.isServerMessage = serverMessage;
 	}
 
+	public Networkable(PacketType packetId, bool serverMessage) {
+		this.packetType = packetId;
+		this.packetHash = packetId.ToString().GetHashCode();
+		if (!serverMessage) { // clients don't have packet flood limiters, the server is trusted.
+			this.maxPacketSize = uint.MaxValue;
+			this.maxPerSecond = uint.MaxValue;
+		}
+
+		this.isServerMessage = serverMessage;
+	}
+
+	public Networkable(PacketType packetId, string hashString, bool serverMessage) {
+		this.packetType = packetId;
+		this.packetHash = hashString.GetHashCode();
+		if (!serverMessage) { // clients don't have packet flood limiters, the server is trusted.
+			this.maxPacketSize = uint.MaxValue;
+			this.maxPerSecond = uint.MaxValue;
+		}
+
+		this.isServerMessage = serverMessage;
+	}
+
 	public Networkable(PacketType packetId, string hashString, uint maxSize, uint perSecond, bool serverMessage) {
 		this.packetType = packetId;
 		this.packetHash = hashString.GetHashCode();

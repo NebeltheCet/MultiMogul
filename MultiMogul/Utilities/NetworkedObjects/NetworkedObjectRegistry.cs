@@ -1,6 +1,4 @@
-﻿
-using System.Collections.Generic;
-using System.Security.Policy;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace MultiMogul.Utilities.NetworkedObjects;
@@ -19,94 +17,110 @@ public class NetworkedObjectRegistry {
 		};
 	}
 
-	static void Assign(NetworkedObject networked, string guid) {
-		Unregister(networked);
+	static void Assign(NetworkedObject networkedObject, string guid) {
+		Unregister(networkedObject);
 
-		networked.guid = guid;
-		networked.GenerateGUIDHash();
+		networkedObject.guid = guid;
+		networkedObject.GenerateGUIDHash();
 
-		if (hashDictionary.TryGetValue(networked.GetHash(), out NetworkedObject other) && other != null && !ReferenceEquals(other, networked)) {
-			MMLog.LogWarning($"guid hash collision between \"{networked.name}\" and \"{other.name}\" (hash {networked.GetHash()})");
-		}
+		ulong hash = networkedObject.GetHash();
+		WarnOnCollision(networkedObject, hash);
 
-		hashDictionary[networked.GetHash()] = networked;
-		MMLog.Log($"added NetworkedObject component to \"{networked.name}\" with hash: {networked.GetHash()}", LogTypes.ControlFlow | LogTypes.Debug);
+		hashDictionary[hash] = networkedObject;
 	}
 
-	private static string GenerateUniqueGUID() {
+	static void WarnOnCollision(NetworkedObject networkedObject, ulong hash) {
+		if (!hashDictionary.TryGetValue(hash, out NetworkedObject other))
+			return;
+
+		if (other == null)
+			return;
+
+		if (ReferenceEquals(other, networkedObject))
+			return;
+
+		MMLog.LogWarning($"guid hash collision between \"{networkedObject.name}\" and \"{other.name}\" (hash {hash})");
+	}
+
+	static string ResolveGuid(NetworkedObject networkedObject, string requestedGuid) {
+		if (!string.IsNullOrEmpty(requestedGuid))
+			return requestedGuid;
+
+		if (!string.IsNullOrEmpty(networkedObject.guid))
+			return networkedObject.guid;
+
+		return GenerateUniqueGUID();
+	}
+
+	static string GenerateUniqueGUID() {
 		while (true) {
 			string guid = System.Guid.NewGuid().ToString();
-			if (hashDictionary.TryGetValue(NetworkedObject.GenerateHash(guid), out NetworkedObject existing))
-				continue;
-
-			if (existing != null)
-				continue;
-
-			return guid;
+			if (!IsHashInUse(NetworkedObject.GenerateHash(guid)))
+				return guid;
 		}
+	}
+
+	static bool IsHashInUse(ulong hash) {
+		if (!hashDictionary.TryGetValue(hash, out NetworkedObject existing))
+			return false;
+
+		return existing != null;
 	}
 
 	public static NetworkedObject Register(Object unityObject, string guid = null) {
-		NetworkedObject networkedObject = Find(unityObject);
-		if (networkedObject)
-			return networkedObject; // we already have a networked object assigned.
-
 		GameObject gameObject = ToGameObject(unityObject);
 		if (gameObject == null) {
 			MMLog.LogWarning("NetworkedObjectRegistry.Register called with a null object!");
 			return null;
 		}
 
-		networkedObject = gameObject.AddComponent<NetworkedObject>();
-		string resolvedGuid = guid;
-		if (string.IsNullOrEmpty(resolvedGuid) && !string.IsNullOrEmpty(networkedObject.guid)) {
-			resolvedGuid = networkedObject.guid;
+		if (!gameObject.TryGetComponent(out NetworkedObject networkedObject)) {
+			networkedObject = gameObject.AddComponent<NetworkedObject>();
 		}
 		else {
-			resolvedGuid = GenerateUniqueGUID();
+			MMLog.Log($"added NetworkedObject component to \"{networkedObject.name}\" with hash: {networkedObject.GetHash()}", LogTypes.ControlFlow | LogTypes.Debug);
 		}
 
-		Assign(networkedObject, resolvedGuid);
+		Assign(networkedObject, ResolveGuid(networkedObject, guid));
 		return networkedObject;
 	}
 
-	private static NetworkedObject Find(Object unityObject) {
+	public static NetworkedObject Find(Object unityObject) {
 		GameObject gameObject = ToGameObject(unityObject);
 		if (gameObject == null) {
 			MMLog.LogWarning("NetworkedObjectRegistry lookup called with a null object!");
 			return null;
 		}
 
-		if (!gameObject.TryGetComponent(out NetworkedObject networked)) {
+		if (!gameObject.TryGetComponent(out NetworkedObject networkedObject)) {
 			//MMLog.LogWarning($"object \"{gameObject.name}\" has no NetworkedObject component!");
 			return null;
 		}
 
-		return networked;
+		return networkedObject;
 	}
 
-	public static void Unregister(NetworkedObject networked) {
-		if (!hashDictionary.TryGetValue(networked.GetHash(), out NetworkedObject current))
+	public static void Unregister(NetworkedObject networkedObject) {
+		ulong hash = networkedObject.GetHash();
+		if (!hashDictionary.TryGetValue(hash, out NetworkedObject current))
 			return;
 
-		if (!ReferenceEquals(current, networked))
+		if (!ReferenceEquals(current, networkedObject))
 			return;
 
-		hashDictionary.Remove(networked.GetHash());
+		hashDictionary.Remove(hash);
 	}
 
 	public static void Clear() {
 		hashDictionary.Clear();
 	}
-	public static GameObject GetFromGUID(ulong guidHash) {
-		return hashDictionary.TryGetValue(guidHash, out NetworkedObject networked) && networked != null ? networked.gameObject : null;
-	}
+	public static GameObject GetFromGUIDHash(ulong guidHash) {
+		if (!hashDictionary.TryGetValue(guidHash, out NetworkedObject networkedObject))
+			return null;
 
-	public static string GetGUIDFromInstance(Object unityObject) {
-		return Find(unityObject)?.guid;
-	}
+		if (networkedObject == null)
+			return null;
 
-	public static ulong GetGUIDHashFromInstance(Object unityObject) {
-		return Find(unityObject)?.GetHash() ?? 0;
+		return networkedObject.gameObject;
 	}
 }

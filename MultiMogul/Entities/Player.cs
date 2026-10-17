@@ -27,7 +27,7 @@ public class Player : MonoBehaviour {
 	private Quaternion _lastNetworkedRotation = Quaternion.identity; // this is the last received network rotation or the last sent network rotation for this player
 
 	private float _lastSentTickTime = 0f;
-	public const float TICK_INTERVAL = 1f / 20;
+	public const float TICK_INTERVAL = 1f / 5;
 
 	public bool IsLocalPlayer {
 		get {
@@ -39,8 +39,6 @@ public class Player : MonoBehaviour {
 		if (playerPrefab != null) {
 			return;
 		}
-
-		localController = Object.FindFirstObjectByType<PlayerController>().gameObject;
 
 		var player = new GameObject("PlayerPrefab", [typeof(Player)]);
 		var playerBody = GameObject.CreatePrimitive(PrimitiveType.Capsule);
@@ -59,6 +57,10 @@ public class Player : MonoBehaviour {
 
 		if (playerPrefab == null) {
 			MMLog.LogException("invalid player prefab even after creating it, notify the developers!");
+		}
+
+		if (localController == null) {
+			localController = Object.FindFirstObjectByType<PlayerController>().gameObject;
 		}
 
 		Player existingEntry = activePlayers.Find(x => x.SteamId.Value == entry.steamId);
@@ -108,13 +110,22 @@ public class Player : MonoBehaviour {
 	}
 
 	// this function is specifically called by clients to initialize the base player list.
-	public static void CreatePlayerList(List<PlayerReplicationData> list) {
+	public static void HandlePlayerList(List<PlayerReplicationData> list) {
 		if (list.Count <= 0) {
 			MMLog.LogWarning("skipped player list initialization, because no entries were present.");
 			return;
 		}
 
 		foreach (PlayerReplicationData entry in list) {
+			if (entry.beingDeleted) {
+				Player player = Player.activePlayers.Find(x => x.SteamId.Value == entry.steamId);
+				if (player != null) {
+					UnityEngine.Object.Destroy(player.gameObject);
+				}
+
+				continue;
+			}
+
 			CreatePlayer(entry);
 		}
 	}
@@ -123,14 +134,7 @@ public class Player : MonoBehaviour {
 		if (!this.IsLocalPlayer)
 			return; // only send client ticks for the localplayer
 
-		if (!ServerManager.IsHosting()) {
-			RawPacket.Send(new OnPlayerTick {
-				steamId = SteamClient.SteamId,
-				position = this.currentPosition,
-				rotation = this.currentRotation
-			}, ClientManager.GetConnection(), SendType.Unreliable, true);
-		}
-		else {
+		if (ServerManager.IsHosting()) {
 			foreach (var client in MultiMogulBase.serverManager.connectedClients) {
 				RawPacket.Send(new OnPlayerTick {
 					steamId = SteamClient.SteamId,
@@ -138,6 +142,13 @@ public class Player : MonoBehaviour {
 					rotation = this.currentRotation
 				}, client.Key, SendType.Unreliable, true);
 			}
+		}
+		else if (ClientManager.IsConnected()) {
+			RawPacket.Send(new OnPlayerTick {
+				steamId = SteamClient.SteamId,
+				position = this.currentPosition,
+				rotation = this.currentRotation
+			}, ClientManager.GetConnection(), SendType.Unreliable, true);
 		}
 
 		this._lastNetworkedPosition = this.currentPosition;
@@ -166,6 +177,16 @@ public class Player : MonoBehaviour {
 			this.currentPosition = localController.transform.position;
 			this.currentRotation = localController.transform.rotation;
 		}
+	}
+
+	private void OnDestroy() {
+		if (this.IsLocalPlayer) {
+			LocalPlayer = null;
+			localController = null;
+		}
+
+		activePlayers.Remove(this);
+		MMLog.Log($"OnDestroy was called for {this.DisplayName} with id: {this.SteamId}", LogTypes.ControlFlow);
 	}
 
 	public static void DrawNametags() {
@@ -224,7 +245,7 @@ public class Player : MonoBehaviour {
 		}
 
 		System.Action action = () => {
-			Player.CreatePlayerList(playerReplication.playerReplications);
+			Player.HandlePlayerList(playerReplication.playerReplications);
 		};
 
 		if (!ClientManager.loadSaveTask.IsCompleted) {
@@ -235,7 +256,7 @@ public class Player : MonoBehaviour {
 		}
 	}
 
-	[Networkable(PacketType.OnRPCMessage, "OnPlayerTick", 64, (uint)(1f / TICK_INTERVAL) * 2, true)]
+	[Networkable(PacketType.OnRPCMessage, "OnPlayerTick", 64, (uint)(1f / TICK_INTERVAL * 2), true)]
 	public static void SV_OnPlayerTick(ConnectionData connectionData, RawPacket receivedPacket) {
 		//MMLog.Log("received player tick", LogTypes.ControlFlow);
 		if (connectionData == null) {
@@ -268,9 +289,9 @@ public class Player : MonoBehaviour {
 		}
 	}
 
-	[Networkable(PacketType.OnRPCMessage, "OnPlayerTick", 64, (uint)(1f / TICK_INTERVAL) * 2, false)]
+	[Networkable(PacketType.OnRPCMessage, "OnPlayerTick", false)]
 	public static void CL_OnPlayerTick(ConnectionManager localConnection, RawPacket receivedPacket) {
-		MMLog.Log("received player tick", LogTypes.ControlFlow);
+		//MMLog.Log("received player tick", LogTypes.ControlFlow);
 		if (activePlayers.Count <= 0) { // our client is most likely still loading in.
 										//MMLog.LogWarning("discarded player tick, are we fully loaded in yet? (if this spams constantly contact the developers!)");
 			return;

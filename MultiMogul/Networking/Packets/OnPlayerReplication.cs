@@ -10,11 +10,15 @@ public class PlayerReplicationData {
 	public Vector3 position = Vector3.zero;
 	public Quaternion rotation = Quaternion.identity;
 
+	public bool beingDeleted = false;
+
 	public static PlayerReplicationData Read(RawPacket packet) {
 		return new PlayerReplicationData {
 			steamId = packet.Read<ulong>(),
 			position = packet.Read<Vector3>(),
-			rotation = packet.Read<Quaternion>()
+			rotation = packet.Read<Quaternion>(),
+
+			beingDeleted = packet.Read<bool>()
 		};
 	}
 
@@ -22,6 +26,8 @@ public class PlayerReplicationData {
 		packet.Write(this.steamId);
 		packet.Write(this.position);
 		packet.Write(this.rotation);
+
+		packet.Write(this.beingDeleted);
 	}
 }
 

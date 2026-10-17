@@ -26,7 +26,7 @@ public class ServerManager : MonoBehaviour {
 	public string serverPassword = string.Empty;
 	public int maxPlayers = 8;
 
-	public const int MaxPacketsPerSecond = 200;
+	public const int MaxPacketsPerSecond = 600;
 	public enum ServerLobbyType : int { // straight copy from Facepunch.Steamworks
 		Private = 0,
 		FriendsOnly = 1,
@@ -183,8 +183,30 @@ public class ServerManager : MonoBehaviour {
 				oreEntries.Add(customOrePieceEntry);
 			}
 
+			List<CustomOreNodeEntry> nodeEntries = [];
+			ReflectionField<List<Vector3>> destroyedStaticBreakablePositions = ReflectionHelper.GetField<List<Vector3>>(Singleton<SavingLoadingManager>.Instance, "_destroyedStaticBreakablePositions", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+			foreach (ISaveLoadableStaticBreakable saveLoadableStaticBreakable in Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None).OfType<ISaveLoadableStaticBreakable>()) {
+				if (saveLoadableStaticBreakable is not Component breakableComponent) {
+					MMLog.LogWarning("a found static breakable was not a component? notify the developers!");
+					continue;
+				}
+
+				NetworkedObject networkedObject = NetworkedObjectRegistry.Register(breakableComponent);
+				if (networkedObject == null) {
+					MMLog.LogWarning("failed to register a networked component to a static breakable! notify the developers!");
+					continue;
+				}
+
+				nodeEntries.Add(new CustomOreNodeEntry {
+					Position = saveLoadableStaticBreakable.GetPosition(),
+					guid = networkedObject.guid,
+				});
+			}
+
 			RawPacket.Send(new OnOreReplication {
 				orePieceEntries = oreEntries,
+				oreNodeEntries = nodeEntries,
+				destroyedStaticBreakablePositions = destroyedStaticBreakablePositions.Value
 			}, connectionData.connection, SendType.Reliable);
 		}
 	}
@@ -213,7 +235,7 @@ public class ServerManager : MonoBehaviour {
 	public void StopServer() {
 		if (this._serverSocket != null && this._serverSocket.Connected.Count > 0) {
 			foreach (var currentConnection in this._serverSocket.Connected) { // disconnect all players
-				currentConnection.Close(true, 0, "Server Closed");
+				currentConnection.Close(false, 0, "server closed");
 			}
 		}
 
@@ -304,21 +326,22 @@ public class ServerManager : MonoBehaviour {
 			if (attribute.packetHash != messageHash)
 				continue;
 
-			if (this.packetCounter.GetPacketCount(messageHash) > attribute.maxPerSecond) {
-				MMLog.LogWarning($"client with id [{connection.Id}] sent too many packets per second of type [{receivedPacket.PacketType}] and hash [{messageHash}]");
-				receivedPacket.Dispose();
-
-				this.connectedClients.Remove(connection);
-				connection.Close(false, 0, "Packet Flooding");
-				return;
-			}
-
 			if ((size - RawPacket.HeaderSize) > attribute.maxPacketSize) {
 				MMLog.LogWarning($"client with id [{connection.Id}] sent unhandled packet size of type [{receivedPacket.PacketType}] and hash [{messageHash}]");
 				receivedPacket.Dispose();
 
 				this.connectedClients.Remove(connection);
 				connection.Close(false, 0, "Invalid Packet Size");
+				return;
+			}
+
+
+			if (this.packetCounter.GetPacketCount(messageHash) > attribute.maxPerSecond) {
+				MMLog.LogWarning($"client with id [{connection.Id}] sent too many packets per second of type [{receivedPacket.PacketType}] and hash [{messageHash}]");
+				receivedPacket.Dispose();
+
+				this.connectedClients.Remove(connection);
+				connection.Close(false, 0, "Packet Flooding");
 				return;
 			}
 
@@ -369,6 +392,36 @@ public class ServerManager : MonoBehaviour {
 			return;
 		}
 
+		ConnectionData connectionData = this.connectedClients[connection];
+		if (connectionData != null) {
+			Player player = Player.activePlayers.Find(x => x.SteamId.Value == connectionData.steamId);
+			if (player != null) {
+				List<PlayerReplicationData> players = [
+					new PlayerReplicationData {
+						steamId = player.SteamId,
+						position = player.transform.position,
+						rotation = player.transform.rotation,
+
+						beingDeleted = true
+					}];
+
+				foreach (var client in MultiMogulBase.serverManager.connectedClients) {
+					if (client.Key == connectionData.connection)
+						continue; // skip current
+
+					RawPacket.Send(new OnPlayerReplication {
+						playerReplications = players,
+					}, client.Key, SendType.Reliable);
+				}
+
+				MMLog.Log("deleting disconnected player object", LogTypes.ControlFlow);
+				UnityEngine.Object.Destroy(player.gameObject);
+			}
+			else {
+				MMLog.LogWarning($"client with steam id: {connectionData.steamId} didn't have an active player, possibly a bug, notify the developers.");
+			}
+		}
+		
 		connection.Close(true);
 		this.connectedClients.Remove(connection);
 

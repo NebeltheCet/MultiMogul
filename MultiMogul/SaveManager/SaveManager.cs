@@ -20,9 +20,9 @@ public static class SaveManager {
 			MMLog.LogException("failed to parse save data, assuming fatal error in save parsing, notify the developers!");
 		}
 
-		if (saveFile.OrePieces != null) {
-			saveFile.OrePieces.Clear(); // clear the list, we'll network this later manually.
-		}
+		// clear the lists, we'll network these later manually.
+		saveFile.OrePieces?.Clear();
+		saveFile.DestroyedStaticBreakablePositions?.Clear();
 
 		return JsonUtility.ToJson(saveFile, true);
 	}
