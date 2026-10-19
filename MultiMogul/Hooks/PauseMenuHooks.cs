@@ -47,22 +47,21 @@ public static class PauseMenuHooks {
 				}
 			}
 
-			var feedBackButtonObject = __instance.gameObject.transform
-			.Find("BackgroundCanvas/PauseMenu/SteamDiscussionsButton")
-			.gameObject;
+			/* Fix for when we add our button everything moving a bit */
+			{
+				var feedBackButtonObject = __instance.gameObject.transform.Find("BackgroundCanvas/PauseMenu/SteamDiscussionsButton").gameObject;
 
-			var layoutElement = feedBackButtonObject.GetComponent<LayoutElement>();
+				var layoutElement = feedBackButtonObject.GetComponent<LayoutElement>();
+				if (layoutElement == null) {
+					layoutElement = feedBackButtonObject.AddComponent<LayoutElement>();
+				}
 
-			if (layoutElement == null) {
-				layoutElement = feedBackButtonObject.AddComponent<LayoutElement>();
-			}
+				layoutElement.ignoreLayout = true;
 
-			layoutElement.ignoreLayout = true;
-
-			var rectTransform = feedBackButtonObject.GetComponent<RectTransform>();
-
-			if (rectTransform != null) {
-				rectTransform.anchoredPosition += new Vector2(0f, -20f);
+				var rectTransform = feedBackButtonObject.GetComponent<RectTransform>();
+				if (rectTransform != null) {
+					rectTransform.anchoredPosition += new Vector2(0f, -20f);
+				}
 			}
 		}
 	}
