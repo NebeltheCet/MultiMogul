@@ -108,6 +108,22 @@ public static class ReflectionHelper {
 		return new ReflectionField<T>(instance, cachedInfo);
 	}
 
+	public static ReflectionField<T> GetField<T>(object instance, string name, BindingFlags flags, Type? declaringType = null) {
+		var type = declaringType ?? instance.GetType();
+		var key = new MemberKey(type, name, flags);
+
+		var cachedInfo = ReflectionCache.Fields.GetOrAdd(key, k =>
+		{
+			var fieldInfo = k.Type.GetField(k.Name, k.Flags)
+				?? throw new MissingFieldException(k.Type.Name, k.Name);
+
+			MMLog.Log($"cached reflection field[{k.Type.Name}.{k.Name}]", LogTypes.ControlFlow);
+			return fieldInfo;
+		});
+
+		return new ReflectionField<T>(instance, cachedInfo);
+	}
+
 	public static ReflectionProperty<T> GetProperty<T>(object instance, string name, BindingFlags flags) {
 		var type = instance?.GetType() ?? throw new ArgumentNullException(nameof(instance));
 		var key = new MemberKey(type, name, flags);
