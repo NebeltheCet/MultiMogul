@@ -116,9 +116,7 @@ public static class SavingLoadingManagerHooks {
 		if (!ServerManager.IsHosting())
 			return; // prevent clients from running this code.
 
-		lastSaveJsonData = json; // TODO: clean out OrePiece entries, and communicate them to the client afterwards.
-								 // one way we could do that is by parsing the json data ourselves,
-								 // and then turning it back into json after clearing the OrePieces list.
+		lastSaveJsonData = json;
 	}
 
 	[HarmonyPrefix]
@@ -136,6 +134,20 @@ public static class SavingLoadingManagerHooks {
 	public static void PostLoadGame(SavingLoadingManager __instance, string fullFilePath) {
 		if (!ServerManager.IsHosting())
 			return;
+
+		MMLog.Log("registering all existing ore pieces and nodes", LogTypes.ControlFlow);
+		foreach (OrePiece orePiece in Object.FindObjectsByType<OrePiece>(FindObjectsSortMode.None)) {
+			_ = NetworkedObjectRegistry.Register(orePiece); // make the host register all OrePiece entries when finishing loading in.
+		}
+
+		foreach (ISaveLoadableStaticBreakable saveLoadableStaticBreakable in Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None).OfType<ISaveLoadableStaticBreakable>()) {
+			if (saveLoadableStaticBreakable is not Component breakableComponent) {
+				MMLog.LogWarning("a found static breakable was not a component? notify the developers!");
+				continue;
+			}
+
+			_ = NetworkedObjectRegistry.Register(breakableComponent);
+		}
 
 		PlayerController playerController = Object.FindFirstObjectByType<PlayerController>();
 

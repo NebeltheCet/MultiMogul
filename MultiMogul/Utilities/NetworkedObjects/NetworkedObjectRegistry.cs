@@ -76,8 +76,6 @@ public class NetworkedObjectRegistry {
 
 		if (!gameObject.TryGetComponent(out NetworkedObject networkedObject)) {
 			networkedObject = gameObject.AddComponent<NetworkedObject>();
-		}
-		else {
 			MMLog.Log($"added NetworkedObject component to \"{networkedObject.name}\" with hash: {networkedObject.GetHash()}", LogTypes.ControlFlow | LogTypes.Debug);
 		}
 
