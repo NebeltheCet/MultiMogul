@@ -86,7 +86,7 @@ public static class DamageEntities {
 			Position = damageInfo.Position,
 		};
 
-		MMLog.Log($"sent take damage packet to other clients for {instance.name} with id: {networkedObject.GetHash()}");
+		MMLog.Log($"sent take damage packet to other clients for {instance.name} with id: {networkedObject.GetHash()}", LogTypes.ControlFlow);
 		if (ServerManager.IsHosting()) {
 			foreach (var client in MultiMogulBase.serverManager.connectedClients) {
 				RawPacket.Send(new OnTakeDamage {
